@@ -93,7 +93,6 @@
         <button class="start-btn" onclick="startStream()">Start Tracking</button>
         <span id="statusMessage">Waiting to start...</span>
         <button class="save-btn" onclick="saveDashboardHTML()">💾 Save Dashboard HTML</button>
-        <button class="stop-btn" onclick="shutDownServer()">🔴 Shut Down Server</button>
     </div>
 
     <div id="historyContainer" class="history-container"></div>
@@ -349,12 +348,7 @@
             }
         }
 
-        function shutDownServer() {
-            if(confirm("Are you sure you want to stop the server in the background?")) {
-                socket.emit("shutdownServer");
-                document.body.innerHTML = "<h1 style='text-align:center; margin-top: 15%; color: #ff4c4c;'>🛑 Server Offline.<br><br>You can safely close this browser tab.</h1>";
-            }
-        }
+        
     </script>
 </body>
 </html>

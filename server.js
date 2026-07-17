@@ -5,44 +5,32 @@ const { Server } = require("socket.io");
 const port = process.env.PORT || 3000;
 const io = new Server(port, { cors: { origin: "*" } });
 
-let tiktokLiveConnection = null;
-let userStats = {}; 
-let updateTimeout = null;
-
-function getUser(data) {
-    const u = data.user || data.userDetails || data || {};
-    const rawId = u.displayId || u.uniqueId || data.displayId || data.uniqueId || u.userId || data.userId || "unknown";
-    const nickname = u.nickname || u.displayName || data.nickname || data.displayName || "Anonymous";
-    
-    const safeKey = `${nickname}_${rawId}`;
-    
-    let profilePic = data.profilePictureUrl;
-    if (!profilePic && u.avatarThumb && u.avatarThumb.urlList) {
-        profilePic = u.avatarThumb.urlList[0];
-    }
-    if (!profilePic) {
-        profilePic = "https://www.tiktok.com/favicon.ico";
-    }
-    
-    if (!userStats[safeKey]) {
-        userStats[safeKey] = {
-            uniqueId: rawId,
-            nickname: nickname,
-            profilePictureUrl: profilePic,
-            commentCount: 0,
-            likeCount: 0,
-            actualTotalLikes: 0,
-            giftCount: 0,
-            shareCount: 0
-        };
-    }
-    return userStats[safeKey];
-}
-
 io.on("connection", (socket) => {
-    socket.on("shutdownServer", () => {
-        process.exit(0); 
-    });
+    // Each user gets their own private memory container
+    let userStats = {}; 
+    let tiktokLiveConnection = null;
+
+    function getUser(data) {
+        const u = data.user || data.userDetails || data || {};
+        const rawId = u.displayId || u.uniqueId || data.displayId || data.uniqueId || u.userId || data.userId || "unknown";
+        const nickname = u.nickname || u.displayName || data.nickname || data.displayName || "Anonymous";
+        const safeKey = `${nickname}_${rawId}`;
+        let profilePic = data.profilePictureUrl;
+        if (!profilePic && u.avatarThumb && u.avatarThumb.urlList) profilePic = u.avatarThumb.urlList[0];
+        if (!profilePic) profilePic = "https://www.tiktok.com/favicon.ico";
+        if (!userStats[safeKey]) {
+            userStats[safeKey] = { uniqueId: rawId, nickname, profilePictureUrl: profilePic, commentCount: 0, likeCount: 0, actualTotalLikes: 0, giftCount: 0, shareCount: 0 };
+        }
+        return userStats[safeKey];
+    }
+
+    function emitUpdate() {
+        const topComments = Object.values(userStats).sort((a, b) => b.commentCount - a.commentCount).slice(0, 30);
+        const topLikes = Object.values(userStats).sort((a, b) => b.likeCount - a.likeCount).slice(0, 30);
+        const topGifts = Object.values(userStats).sort((a, b) => b.giftCount - a.giftCount).slice(0, 30);
+        const topShares = Object.values(userStats).sort((a, b) => b.shareCount - a.shareCount).slice(0, 30);
+        socket.emit('leaderboardUpdate', { topComments, topLikes, topGifts, topShares, totalUniqueUsers: Object.keys(userStats).length });
+    }
 
     socket.on("startStream", (username) => {
         if (tiktokLiveConnection) {
@@ -60,7 +48,7 @@ io.on("connection", (socket) => {
 
         tiktokLiveConnection.on('roomUser', data => {
             if (data.viewerCount !== undefined) {
-                io.emit("viewerUpdate", { count: data.viewerCount });
+                socket.emit("viewerUpdate", { count: data.viewerCount });
             }
         });
 
@@ -78,7 +66,7 @@ io.on("connection", (socket) => {
                 chatText = "💬 [Sent a Sticker or Emote]";
             }
             
-            io.emit("newComment", {
+            socket.emit("newComment", {
                 uniqueId: user.uniqueId, 
                 nickname: user.nickname,
                 profilePictureUrl: user.profilePictureUrl,
