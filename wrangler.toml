@@ -1,0 +1,12 @@
+name = "tiktok-tracker-frontend"
+pages_build_output_dir = "./frontend"
+compatibility_date = "2024-03-20"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tiktokd1"
+database_id = "e0d56160-ed5f-4d80-a6b1-76434a7dcc34"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "tiktok"
