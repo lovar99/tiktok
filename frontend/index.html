@@ -376,6 +376,150 @@
             }
         });
 
+        let adminDataCache = null;
+        let hideDuplicateVisits = false;
+
+        socket.on("adminPanelData", (data) => {
+            adminDataCache = data;
+            renderAdminUI('visits');
+        });
+
+        socket.on("adminRefresh", () => {
+            socket.emit("requestAdminPanel");
+        });
+
+        socket.on("forceLogout", (kickedUsername) => {
+            const token = localStorage.getItem("tiktokAdminToken");
+            if (token) {
+                try {
+                    // Read the local token to see who is logged in here
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    if (payload.username === kickedUsername) {
+                        localStorage.removeItem("tiktokAdminToken");
+                        alert("⚠️ بەڕێوەبەر تۆی کردە دەرەوە! (Admin kicked you out)");
+                        window.location.href = "login.html";
+                    }
+                } catch (e) {}
+            }
+        });
+
+        function renderAdminUI(activeTab) {
+            if (!adminDataCache) return;
+            const { analytics, logins, users, activeCount } = adminDataCache;
+
+            // Analytics Logic
+            let visits = analytics;
+            if (hideDuplicateVisits) {
+                const seen = new Set();
+                visits = analytics.filter(v => {
+                    if (seen.has(v.ip_address)) return false;
+                    seen.add(v.ip_address);
+                    return true;
+                });
+            }
+
+            const now = new Date();
+            const isToday = d => new Date(d).toDateString() === now.toDateString();
+            const isThisWeek = d => (now - new Date(d)) <= 7 * 24 * 60 * 60 * 1000;
+            const isThisMonth = d => new Date(d).getMonth() === now.getMonth() && new Date(d).getFullYear() === now.getFullYear();
+            const isThisYear = d => new Date(d).getFullYear() === now.getFullYear();
+
+            const todayC = visits.filter(v => isToday(v.visit_time)).length;
+            const weekC = visits.filter(v => isThisWeek(v.visit_time)).length;
+            const monthC = visits.filter(v => isThisMonth(v.visit_time)).length;
+            const yearC = visits.filter(v => isThisYear(v.visit_time)).length;
+
+            let html = `
+                <style>
+                    .adm-stats { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+                    .adm-stat { flex: 1; background: #2a2a2a; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #444; min-width: 100px; }
+                    .adm-stat b { display: block; font-size: 22px; color: #fe2c55; margin-top: 5px; }
+                    .adm-tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 10px; flex-wrap: wrap; }
+                    .adm-tab { padding: 10px 15px; cursor: pointer; color: #aaa; font-weight: bold; border-radius: 5px; background: #2a2a2a; transition: 0.2s;}
+                    .adm-tab:hover { background: #444; }
+                    .adm-tab.active { background: #fe2c55; color: white; }
+                    .adm-table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; }
+                    .adm-table th, .adm-table td { padding: 12px; border-bottom: 1px solid #333; }
+                    .adm-table th { background: #2a2a2a; color: #fe2c55; }
+                    .adm-btn { padding: 6px 12px; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: bold; margin-left: 5px; transition: 0.2s; }
+                    .adm-btn:hover { opacity: 0.8; }
+                </style>
+
+                <div class="adm-stats">
+                    <div class="adm-stat">لایڤ ئێستا <b>${activeCount}</b></div>
+                    <div class="adm-stat">ئەمڕۆ <b>${todayC}</b></div>
+                    <div class="adm-stat">ئەم هەفتەیە <b>${weekC}</b></div>
+                    <div class="adm-stat">ئەم مانگە <b>${monthC}</b></div>
+                    <div class="adm-stat">ئەمساڵ <b>${yearC}</b></div>
+                </div>
+                
+                <div style="margin-bottom: 20px; background: #2a2a2a; padding: 10px; border-radius: 8px; border: 1px solid #444;">
+                    <label style="cursor: pointer; color: white; font-size: 15px; display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" style="width: 20px; height: 20px;" ${hideDuplicateVisits ? 'checked' : ''} onchange="hideDuplicateVisits=this.checked; renderAdminUI('${activeTab}')"> 
+                        شاردنەوەی دووبارەکان (تەنها سەردانە یەکتاکان نیشان بدە)
+                    </label>
+                </div>
+
+                <div class="adm-tabs">
+                    <div class="adm-tab ${activeTab==='visits'?'active':''}" onclick="renderAdminUI('visits')">🌐 مێژووی سەردانەکان</div>
+                    <div class="adm-tab ${activeTab==='logins'?'active':''}" onclick="renderAdminUI('logins')">🔐 چوونە ژوورەوەکان</div>
+                    <div class="adm-tab ${activeTab==='users'?'active':''}" onclick="renderAdminUI('users')">👥 بەڕێوەبردنی بەکارهێنەران</div>
+                </div>
+                <div id="admContent" style="max-height: 400px; overflow-y: auto;"></div>
+            `;
+
+            document.getElementById("customModalContent").innerHTML = html;
+            const contentDiv = document.getElementById("admContent");
+
+            if (activeTab === 'visits') {
+                contentDiv.innerHTML = `
+                    <table class="adm-table">
+                        <tr><th>IP ئەدرێس</th><th>کات و بەروار</th></tr>
+                        ${visits.slice(0, 100).map(v => `<tr><td dir="ltr" style="text-align:right;">${v.ip_address || 'N/A'}</td><td dir="ltr" style="text-align:right;">${new Date(v.visit_time).toLocaleString()}</td></tr>`).join('')}
+                    </table>
+                `;
+            } 
+            else if (activeTab === 'logins') {
+                contentDiv.innerHTML = `
+                    <table class="adm-table">
+                        <tr><th>بەکارهێنەر</th><th>کاتی چوونە ژوورەوە</th><th>زانیاری زیاتر</th></tr>
+                        ${logins.map(l => `<tr>
+                            <td>${l.username}</td>
+                            <td dir="ltr" style="text-align:right;">${new Date(l.login_time).toLocaleString()}</td>
+                            <td><button class="adm-btn" style="background:#2196F3;" onclick="alert('مێژووی چالاکی بەکارهێنەر:\\n\\nناو: ${l.username}\\nکات: ${new Date(l.login_time).toLocaleString()}\\nمانەوە: ${l.duration_minutes ? l.duration_minutes + ' خولەک' : 'ئێستا چالاکە'}')">👁️ بینین</button></td>
+                        </tr>`).join('')}
+                    </table>
+                `;
+            } 
+            else if (activeTab === 'users') {
+                contentDiv.innerHTML = `
+                    <button class="adm-btn" style="background:#4CAF50; margin-bottom: 15px; padding: 10px 15px;" onclick="addAdminUser()">➕ زیادکردنی بەکارهێنەر</button>
+                    <table class="adm-table">
+                        <tr><th>ناو</th><th>بەرواری دروستکردن</th><th>کردارەکان</th></tr>
+                        ${users.map(u => `
+                            <tr>
+                                <td>${u.username}</td>
+                                <td dir="ltr" style="text-align:right;">${u.created_at.split('T')[0]}</td>
+                                <td>
+                                    <button class="adm-btn" style="background:#ff9800;" onclick="socket.emit('adminKickUser', '${u.username}')">دەرکردن (Kick)</button>
+                                    <button class="adm-btn" style="background:#f44336;" onclick="if(confirm('دڵنیایت لە سڕینەوەی ${u.username}؟')) socket.emit('adminDeleteUser', ${u.id})">سڕینەوە</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                `;
+            }
+        }
+
+        function addAdminUser() {
+            const user = prompt("ناوی بەکارهێنەری نوێ:");
+            if(!user) return;
+            const pass = prompt("وشەی نهێنی بۆ بەکارهێنەرەکە:");
+            if(!pass) return;
+            socket.emit("adminAddUser", { username: user, password: pass });
+            alert("⏳ خەریکە دروست دەکرێت... تکایە چەند چرکەیەک چاوەڕێ بکە.");
+        }
+
         // Prevent accidental refresh wiping out data
         window.addEventListener('beforeunload', function (e) {
             e.preventDefault();
