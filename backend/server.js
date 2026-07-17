@@ -119,27 +119,31 @@ io.on("connection", (socket) => {
 
     // --- SECRET ADMIN PANEL REQUEST ---
     socket.on("requestAdminPanel", async () => {
-        // Fetch real analytics from D1
-        const totalVisitsRes = await queryD1(`SELECT COUNT(*) as count FROM analytics`);
+        const analyticsRes = await queryD1(`SELECT * FROM analytics ORDER BY id DESC`);
+        const loginsRes = await queryD1(`SELECT l.*, u.username FROM login_history l JOIN users u ON l.user_id = u.id ORDER BY l.id DESC LIMIT 100`);
         const usersRes = await queryD1(`SELECT id, username, role, created_at FROM users`);
         
-        const totalVisits = totalVisitsRes.result?.[0]?.results?.[0]?.count || 0;
-        const dbUsers = usersRes.result?.[0]?.results || [];
+        socket.emit("adminPanelData", {
+            analytics: analyticsRes.result?.[0]?.results || [],
+            logins: loginsRes.result?.[0]?.results || [],
+            users: usersRes.result?.[0]?.results || [],
+            activeCount: Object.keys(activeSiteVisitors).length
+        });
+    });
 
-        let adminHtml = `
-            <div style="color: white;">
-                <h3>📊 ئامارەکانی وێبسایت</h3>
-                <p>سەردانی گشتی: <b>${totalVisits}</b></p>
-                <p>بەکارهێنەرە چالاکەکانی ئێستا: <b>${Object.keys(activeSiteVisitors).length}</b></p>
-                <hr style="border-color:#333">
-                <h3>👥 هەژمارەکان</h3>
-                <table style="width:100%; text-align:left; border-collapse: collapse;">
-                    <tr style="background:#2a2a2a;"><th>ID</th><th>ناو</th><th>ڕۆڵ</th><th>بەروار</th></tr>
-                    ${dbUsers.map(u => `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.role}</td><td>${u.created_at.split('T')[0]}</td></tr>`).join('')}
-                </table>
-            </div>
-        `;
-        socket.emit("adminPanelData", adminHtml);
+    socket.on("adminDeleteUser", async (userId) => {
+        await queryD1(`DELETE FROM users WHERE id = ?`, [userId]);
+        socket.emit("adminRefresh");
+    });
+
+    socket.on("adminKickUser", (username) => {
+        io.emit("forceLogout", username);
+    });
+
+    socket.on("adminAddUser", async (data) => {
+        const hash = await bcrypt.hash(data.password, 10);
+        await queryD1(`INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)`, [data.username, hash, 'user']);
+        socket.emit("adminRefresh");
     });
 
     socket.on("startStream", (username) => {
