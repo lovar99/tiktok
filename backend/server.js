@@ -23,6 +23,10 @@ const JWT_SECRET = process.env.JWT_SECRET || "super-secret-tiktok-key-change-me"
 // Active live users (Admin panel tracking)
 let activeSiteVisitors = {};
 
+// Memory cache for active cross-device streams
+let globalActiveComments = [];
+let globalActiveLeaderboard = null;
+
 // --- CLOUDFLARE D1 HELPER FUNCTION ---
 async function queryD1(sql, params = []) {
     if (!CF_ACCOUNT_ID || !CF_D1_ID || !CF_API_TOKEN) {
@@ -90,6 +94,24 @@ io.on("connection", (socket) => {
     
     let userStats = {}; 
     let tiktokLiveConnection = null;
+    let pollKeywords = [];
+    let pollCounts = {};
+
+    socket.on("setPollKeywords", (keywords) => {
+        pollKeywords = keywords.map(k => String(k).trim().toLowerCase());
+        pollKeywords.forEach(k => {
+            if (pollCounts[k] === undefined) pollCounts[k] = 0;
+        });
+        emitPollUpdate();
+    });
+
+    function emitPollUpdate() {
+        const sorted = Object.keys(pollCounts)
+            .sort((a, b) => pollCounts[b] - pollCounts[a])
+            .slice(0, 3)
+            .map(k => ({ keyword: k, count: pollCounts[k] }));
+        socket.emit("pollUpdate", sorted);
+    }
 
     function getUser(data) {
         const u = data.user || data.userDetails || data || {};
@@ -112,23 +134,102 @@ io.on("connection", (socket) => {
         const topLikes = Object.values(userStats).sort((a, b) => b.likeCount - a.likeCount).slice(0, 30);
         const topGifts = Object.values(userStats).sort((a, b) => b.giftCount - a.giftCount).slice(0, 30);
         const topShares = Object.values(userStats).sort((a, b) => b.shareCount - a.shareCount).slice(0, 30);
-        socket.emit('leaderboardUpdate', { topComments, topLikes, topGifts, topShares, totalUniqueUsers: Object.keys(userStats).length });
+        
+        globalActiveLeaderboard = { topComments, topLikes, topGifts, topShares, totalUniqueUsers: Object.keys(userStats).length };
+        io.emit('leaderboardUpdate', globalActiveLeaderboard); 
     }
 
     socket.on("getAllUsers", () => socket.emit("allUsersData", Object.values(userStats)));
 
+    socket.on("requestInitialState", async (username) => {
+        const syncData = {
+            allComments: globalActiveComments,
+            leaderboard: globalActiveLeaderboard
+        };
+
+        if (username && username !== "unknown") {
+            const res = await queryD1(`SELECT settings_data FROM user_settings WHERE username = ?`, [username]);
+            const row = res.result?.[0]?.results?.[0];
+            if (row && row.settings_data) {
+                try {
+                    const settings = JSON.parse(row.settings_data);
+                    syncData.searchHistory = settings.searchHistory;
+                    syncData.widgetState = settings.widgetState;
+                } catch(e) {}
+            }
+        }
+        socket.emit("initialState", syncData);
+    });
+
+    socket.on("saveUserSettings", async (data) => {
+        if (!data.username || data.username === "unknown") return;
+        const settingsJson = JSON.stringify({
+            searchHistory: data.searchHistory,
+            widgetState: data.widgetState
+        });
+        
+        await queryD1(`
+            INSERT INTO user_settings (username, settings_data) 
+            VALUES (?, ?) 
+            ON CONFLICT(username) DO UPDATE SET settings_data = excluded.settings_data
+        `, [data.username, settingsJson]);
+    });
+
+    // --- SESSION HISTORY & DATABASE ---
+    socket.on("saveSessionToD1", async (username) => {
+        if (!username || Object.keys(userStats).length === 0) return;
+        const sessionData = JSON.stringify(userStats);
+        await queryD1(`INSERT INTO sessions (username, session_data) VALUES (?, ?)`, [username, sessionData]);
+        socket.emit("streamStatus", { status: "success", message: "✅ دانیشتنەکە پاشەکەوت کرا لە بنکەی دراوە! (Saved to DB)" });
+    });
+
+    socket.on("getPastSessions", async () => {
+        const res = await queryD1(`SELECT id, username, start_time FROM sessions ORDER BY id DESC LIMIT 20`);
+        socket.emit("pastSessionsData", res.result?.[0]?.results || []);
+    });
+
+    socket.on("loadPastSession", async (id) => {
+        const res = await queryD1(`SELECT session_data FROM sessions WHERE id = ?`, [id]);
+        const data = res.result?.[0]?.results?.[0]?.session_data;
+        if(data) {
+            socket.emit("pastSessionLoaded", JSON.parse(data));
+        }
+    });
+
     // --- SECRET ADMIN PANEL REQUEST ---
     socket.on("requestAdminPanel", async () => {
-        const analyticsRes = await queryD1(`SELECT * FROM analytics ORDER BY id DESC`);
-        const loginsRes = await queryD1(`SELECT l.*, u.username FROM login_history l JOIN users u ON l.user_id = u.id ORDER BY l.id DESC LIMIT 100`);
+        const analyticsRes = await queryD1(`SELECT ip_address, visit_time FROM analytics ORDER BY id DESC LIMIT 100`);
+        const loginsRes = await queryD1(`SELECT u.username, l.login_time, l.duration_minutes FROM login_history l JOIN users u ON l.user_id = u.id ORDER BY l.id DESC LIMIT 100`);
         const usersRes = await queryD1(`SELECT id, username, role, created_at FROM users`);
         
+        // Map Database columns to generic names so the frontend/network tab never exposes the SQL schema
+        const safeAnalytics = (analyticsRes.result?.[0]?.results || []).map(r => ({ ip: r.ip_address, time: r.visit_time }));
+        const safeLogins = (loginsRes.result?.[0]?.results || []).map(r => ({ user: r.username, time: r.login_time, duration: r.duration_minutes }));
+        const safeUsers = (usersRes.result?.[0]?.results || []).map(r => ({ uid: r.id, name: r.username, role: r.role, joined: r.created_at }));
+
         socket.emit("adminPanelData", {
-            analytics: analyticsRes.result?.[0]?.results || [],
-            logins: loginsRes.result?.[0]?.results || [],
-            users: usersRes.result?.[0]?.results || [],
+            analytics: safeAnalytics,
+            logins: safeLogins,
+            users: safeUsers,
             activeCount: Object.keys(activeSiteVisitors).length
         });
+    });
+    
+    socket.on("adminEditUser", async (data) => {
+        const { uid, newName, newPass } = data;
+        if (!uid || !newName) return;
+        
+        try {
+            if (newPass && newPass.trim() !== "") {
+                const hash = await bcrypt.hash(newPass, 10); // Securely hash manual override password
+                await queryD1(`UPDATE users SET username = ?, password_hash = ? WHERE id = ?`, [newName, hash, uid]);
+            } else {
+                await queryD1(`UPDATE users SET username = ? WHERE id = ?`, [newName, uid]);
+            }
+            socket.emit("adminRefresh");
+        } catch (e) {
+            console.error("Failed to edit user", e);
+        }
     });
 
     socket.on("adminDeleteUser", async (userId) => {
@@ -149,6 +250,13 @@ io.on("connection", (socket) => {
     socket.on("startStream", (username) => {
         if (tiktokLiveConnection) tiktokLiveConnection.disconnect();
         userStats = {};
+        globalActiveComments = [];
+        globalActiveLeaderboard = null;
+        
+        pollCounts = {};
+        pollKeywords.forEach(k => pollCounts[k] = 0);
+        emitPollUpdate();
+
         tiktokLiveConnection = new TikTokLiveConnection(username, {});
         
         tiktokLiveConnection.connect().then(() => {
@@ -167,7 +275,23 @@ io.on("connection", (socket) => {
             user.commentCount += 1;
             let chatText = data.content || data.comment || data.text || data.msg || "";
             if (!chatText || String(chatText).trim() === "") chatText = "💬 [Sent a Sticker or Emote]";
-            socket.emit("newComment", { uniqueId: user.uniqueId, nickname: user.nickname, profilePictureUrl: user.profilePictureUrl, comment: String(chatText) });
+            
+            const chatLower = String(chatText).toLowerCase();
+            let matchedVote = false;
+            pollKeywords.forEach(keyword => {
+                if (chatLower.includes(keyword)) {
+                    pollCounts[keyword] += 1;
+                    matchedVote = true;
+                }
+            });
+            if (matchedVote) emitPollUpdate();
+
+            const commentData = { uniqueId: user.uniqueId, nickname: user.nickname, profilePictureUrl: user.profilePictureUrl, comment: String(chatText) };
+            
+            globalActiveComments.push(commentData);
+            if(globalActiveComments.length > 500) globalActiveComments.shift();
+            
+            io.emit("newComment", commentData);
             emitUpdate();
         });
 

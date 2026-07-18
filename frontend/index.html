@@ -1,9 +1,38 @@
 <!DOCTYPE html>
 <html lang="ku" dir="rtl">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        body { background-color: #121212; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; }
+        body { background-color: transparent; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; min-height: 100vh; overflow-x: hidden; }
+        
+        #cameraBg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: -100; background: #000; }
+        
+        .stats-header, .controls, .history-container, #visualAlert { position: relative; z-index: 10; background: rgba(30, 30, 30, 0.7) !important; backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        
+        /* Side Menu Swiper */
+        .glass-panel { background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(15px); border-left: 1px solid rgba(255,255,255,0.1); }
+        #sideMenu { position: fixed; right: -280px; top: 0; width: 280px; height: 100vh; z-index: 1000; transition: right 0.4s cubic-bezier(0.25, 1, 0.5, 1); padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; box-shadow: -5px 0 25px rgba(0,0,0,0.7); }
+        #sideMenu.open { right: 0; }
+        .menu-toggle { position: absolute; left: -50px; top: 50%; transform: translateY(-50%); width: 50px; height: 60px; background: #fe2c55; border-radius: 12px 0 0 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 28px; box-shadow: -2px 2px 8px rgba(0,0,0,0.5); color: white; transition: 0.2s; }
+        .menu-toggle:hover { width: 60px; left: -60px; }
+        .menu-btn { padding: 15px; background: rgba(40,40,40,0.8); border: 1px solid #555; color: white; border-radius: 8px; cursor: pointer; text-align: right; transition: 0.2s; font-weight: bold; font-size: 16px; display: flex; align-items: center; gap: 10px; }
+        .menu-btn:hover { background: #fe2c55; border-color: #fe2c55; }
+
+        /* Draggable Widgets */
+        .widget-card { position: absolute; display: none; flex-direction: column; background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(12px); border-radius: 12px; border: 1px solid #444; min-width: 250px; min-height: 200px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); z-index: 100; }
+        .widget-header { background: rgba(10, 10, 10, 0.9); padding: 12px 15px; cursor: grab; font-weight: bold; color: #fe2c55; display: flex; justify-content: space-between; align-items: center; user-select: none; touch-action: none; border-radius: 12px 12px 0 0; border-bottom: 1px solid #333; font-size: 16px; }
+        .widget-header:active { cursor: grabbing; }
+        .widget-content { padding: 15px; overflow-y: auto; flex-grow: 1; height: calc(100% - 50px); }
+        .widget-content::-webkit-scrollbar { width: 8px; }
+        .widget-content::-webkit-scrollbar-track { background: transparent; }
+        .widget-content::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+        .widget-content::-webkit-scrollbar-thumb:hover { background: #fe2c55; }
+        .resize-handle { position: absolute; bottom: 0; left: 0; width: 30px; height: 30px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, #888 50%); border-bottom-left-radius: 12px; }
+        .widget-close { cursor: pointer; color: #aaa; font-size: 18px; padding: 0 5px; }
+        .widget-close:hover { color: #ff4c4c; }
         
         .stats-header { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; width: 95%; max-width: 1400px; }
         .badge { background: #1e1e1e; padding: 12px 25px; border-radius: 30px; font-size: 18px; font-weight: bold; border: 2px solid #333; }
@@ -79,9 +108,11 @@
     </style>
 </head>
 <body>
+    <!-- Camera Background for Mobile Screen-sharing -->
+    <video id="cameraBg" autoplay playsinline muted></video>
 
     <!-- 11-Tap Secret Trigger added to the H1 -->
-    <h1 id="secretAdminTrigger" style="user-select: none;">🏆 داشبۆردی ئامارەکانی لایڤ</h1>
+    <h1 id="secretAdminTrigger" style="user-select: none; position: relative; z-index: 10; text-shadow: 0 4px 10px rgba(0,0,0,0.8);">🏆 داشبۆردی ئامارەکانی لایڤ</h1>
 
     <div class="stats-header">
         <div class="badge" onclick="fetchAllUsers()" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#1e1e1e'" title="بینینی هەموو بەکارهێنەران">👥 بەکارهێنەرە تۆمارکراوەکان: <span id="trackedUsersBadge">0</span></div>
@@ -91,44 +122,107 @@
     
     <div class="controls" id="dashboardControls">
         <input type="text" id="usernameInput" placeholder="ناوی بەکارهێنەری تیکتۆک بنووسە..." oninput="this.value = this.value.toLowerCase().replace(/@/g, '').trim()" />
+        <input type="text" id="pollKeywordsInput" placeholder="دەنگدان (بۆ نموونە: A, B, C)" oninput="updatePollKeywords()" style="width: 150px;" />
+        <input type="text" id="alertKeywordsInput" placeholder="وشەی قەدەغەکراو (بە کۆما)" style="width: 150px;" />
         <button class="start-btn" onclick="startStream()">دەستپێکردنی چاودێری</button>
+        <button class="start-btn" style="background: #2196F3;" onclick="toggleCamera()">📷 کامێرا</button>
         <span id="statusMessage">چاوەڕێی دەستپێکردن...</span>
         <button class="save-btn" onclick="saveDashboardHTML()">💾 پاشەکەوتکردنی داشبۆرد</button>
     </div>
 
     <div id="historyContainer" class="history-container"></div>
 
-    <div class="tabs">
-        <button class="tab-btn active" onclick="showTab('commentsTab', this)">💬 باشترین کۆمێنتەکان</button>
-        <button class="tab-btn" onclick="showTab('likesTab', this)">❤️ زۆرترین لایکەکان</button>
-        <button class="tab-btn" onclick="showTab('giftsTab', this)">🎁 زۆرترین دیارییەکان</button>
-        <button class="tab-btn" onclick="showTab('sharesTab', this)">↗️ زۆرترین شەیرەکان</button>
-        <button class="tab-btn" onclick="showTab('searchTab', this)">🔍 گەڕان / کۆمێنتە ڕاستەوخۆکان</button>
+    <div id="visualAlert" style="display: none; background: #ff4c4c; color: white; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px; width: 95%; max-width: 1400px; animation: flash 1s infinite alternate; border: 2px solid white; box-shadow: 0 0 15px red;">⚠️ ئاگاداری: وشەی گرنگ یان قەدەغەکراو لە کۆمێنتەکان بینرا!</div>
+
+    <div class="controls" style="background: #2a2a2a; border: 1px solid #444; justify-content: flex-start;">
+        <h3 style="margin: 0 15px 0 0; color: #fe2c55;">📊 ڕاپرسی ڕاستەوخۆ:</h3>
+        <div id="pollResults" style="display: flex; gap: 15px; flex-wrap: wrap; flex-grow: 1;">
+            <span style="color: #aaa; margin-top: 5px;">دەنگدان هێشتا دەستی پێنەکردووە...</span>
+        </div>
+    </div>
+    
+    <style>
+        @keyframes flash {
+            0% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        .poll-item { background: #1e1e1e; padding: 8px 15px; border-radius: 8px; font-weight: bold; border: 1px solid #fe2c55; display: flex; align-items: center; }
+        .poll-item span { color: #fe2c55; margin-left: 10px; font-size: 20px; }
+        .comment-item.alert-highlight { border: 2px solid #ff4c4c; background: rgba(255, 76, 76, 0.15) !important; }
+    </style>
+
+    <!-- Side Panel Swiper -->
+    <div id="sideMenu" class="glass-panel">
+        <div class="menu-toggle" onclick="document.getElementById('sideMenu').classList.toggle('open')">☰</div>
+        <h2 style="color: white; margin-top: 0; font-size: 20px; border-bottom: 1px solid #444; padding-bottom: 10px;">کارتەکان (Widgets)</h2>
+        <button class="menu-btn" onclick="toggleWidget('widget-comments')">💬 باشترین کۆمێنتەکان</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-likes')">❤️ زۆرترین لایکەکان</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-gifts')">🎁 زۆرترین دیارییەکان</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-shares')">↗️ زۆرترین شەیرەکان</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-search')">🔍 کۆمێنتە ڕاستەوخۆکان</button>
+        <div style="border-top: 1px solid #444; margin: 10px 0;"></div>
+        <button class="menu-btn" style="background: #4CAF50;" onclick="saveSessionToDB()">💾 پاشەکەوتکردن (سێرڤەر)</button>
+        <button class="menu-btn" style="background: #2196F3;" onclick="viewHistory()">📜 مێژووی دانیشتنەکان</button>
     </div>
 
-    <div id="commentsTab" class="tab-content active">
-        <h2>Top Comments</h2>
-        <div id="commentsList" class="grid-list"></div>
-    </div>
-    <div id="likesTab" class="tab-content">
-        <h2>Top Likes</h2>
-        <div id="likesList" class="grid-list"></div>
-    </div>
-    <div id="giftsTab" class="tab-content">
-        <h2>Top Gifts (By Diamonds)</h2>
-        <div id="giftsList" class="grid-list"></div>
-    </div>
-    <div id="sharesTab" class="tab-content">
-        <h2>Top Shares</h2>
-        <div id="sharesList" class="grid-list"></div>
-    </div>
-    <div id="searchTab" class="tab-content">
-        <h2>Live Feed & Search</h2>
-        <div style="display: flex; gap: 10px; width: 100%; margin-bottom: 20px;">
-            <input type="text" id="searchInput" class="search-bar" style="margin-bottom: 0;" placeholder="Type a username or a word to filter the feed..." onkeyup="renderComments()" />
-            <button class="tab-btn" onclick="showDuplicateComments()" style="white-space: nowrap; margin-bottom: 0;">🔁 Duplicates</button>
+    <!-- Draggable Floating Widgets -->
+    <div id="widget-comments" class="widget-card" style="top: 250px; left: 50px; width: 350px; height: 350px;">
+        <div class="widget-header">
+            <span>💬 باشترین کۆمێنتەکان</span>
+            <span class="widget-close" onclick="toggleWidget('widget-comments')">✖</span>
         </div>
-        <div id="searchList"></div>
+        <div class="widget-content">
+            <div id="commentsList" class="grid-list" style="grid-template-columns: 1fr;"></div>
+        </div>
+        <div class="resize-handle"></div>
+    </div>
+
+    <div id="widget-likes" class="widget-card" style="top: 250px; left: 450px; width: 350px; height: 350px;">
+        <div class="widget-header">
+            <span>❤️ زۆرترین لایکەکان</span>
+            <span class="widget-close" onclick="toggleWidget('widget-likes')">✖</span>
+        </div>
+        <div class="widget-content">
+            <div id="likesList" class="grid-list" style="grid-template-columns: 1fr;"></div>
+        </div>
+        <div class="resize-handle"></div>
+    </div>
+
+    <div id="widget-gifts" class="widget-card" style="top: 650px; left: 50px; width: 350px; height: 350px;">
+        <div class="widget-header">
+            <span>🎁 زۆرترین دیارییەکان</span>
+            <span class="widget-close" onclick="toggleWidget('widget-gifts')">✖</span>
+        </div>
+        <div class="widget-content">
+            <div id="giftsList" class="grid-list" style="grid-template-columns: 1fr;"></div>
+        </div>
+        <div class="resize-handle"></div>
+    </div>
+
+    <div id="widget-shares" class="widget-card" style="top: 650px; left: 450px; width: 350px; height: 350px;">
+        <div class="widget-header">
+            <span>↗️ زۆرترین شەیرەکان</span>
+            <span class="widget-close" onclick="toggleWidget('widget-shares')">✖</span>
+        </div>
+        <div class="widget-content">
+            <div id="sharesList" class="grid-list" style="grid-template-columns: 1fr;"></div>
+        </div>
+        <div class="resize-handle"></div>
+    </div>
+
+    <div id="widget-search" class="widget-card" style="top: 250px; left: 850px; width: 450px; height: 600px;">
+        <div class="widget-header">
+            <span>🔍 کۆمێنتە ڕاستەوخۆکان</span>
+            <span class="widget-close" onclick="toggleWidget('widget-search')">✖</span>
+        </div>
+        <div class="widget-content">
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="searchInput" class="search-bar" style="margin-bottom: 0; padding: 12px; font-size: 16px;" placeholder="گەڕان بەدوای وشە یان ناو..." onkeyup="renderComments()" />
+                <button class="menu-btn" onclick="showDuplicateComments()" style="white-space: nowrap; margin-bottom: 0; padding: 10px; flex-shrink: 0;">🔁 دووبارە</button>
+            </div>
+            <div id="searchList"></div>
+        </div>
+        <div class="resize-handle"></div>
     </div>
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -148,16 +242,36 @@
                             String(now.getHours()).padStart(2, '0') + "-" + 
                             String(now.getMinutes()).padStart(2, '0');
 
-            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'block');
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.style.display = 'none');
+            // Force all widgets to display stack-layout to ensure no data is hidden in download
+            document.querySelectorAll('.widget-card').forEach(w => {
+                w.dataset.oldDisplay = w.style.display;
+                w.style.display = 'flex';
+                w.style.position = 'relative'; 
+                w.style.top = 'auto';
+                w.style.left = 'auto';
+                w.style.width = '100%';
+                w.style.marginBottom = '20px';
+            });
             
             const clone = document.documentElement.cloneNode(true);
-            const controls = clone.querySelector('#dashboardControls');
+            const controls = clone.querySelector('.controls');
             if(controls) controls.remove();
+            const sideMenu = clone.querySelector('#sideMenu');
+            if(sideMenu) sideMenu.remove();
+            const cameraBg = clone.querySelector('#cameraBg');
+            if(cameraBg) cameraBg.remove();
             
-            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = '');
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.style.display = '');
-            showTab('commentsTab', document.querySelector('.tab-btn'));
+            // Restore actual floating layout
+            document.querySelectorAll('.widget-card').forEach(w => {
+                w.style.display = w.dataset.oldDisplay;
+                w.style.position = 'absolute';
+                if (widgetState[w.id]) {
+                    w.style.top = widgetState[w.id].top || '250px';
+                    w.style.left = widgetState[w.id].left || '50px';
+                    w.style.width = widgetState[w.id].width || '350px';
+                }
+                w.style.marginBottom = '0';
+            });
 
             const htmlContent = "<!DOCTYPE html>\n" + clone.outerHTML;
             const blob = new Blob([htmlContent], { type: "text/html" });
@@ -172,7 +286,21 @@
             URL.revokeObjectURL(url);
         }
 
-        let searchHistory = JSON.parse(localStorage.getItem('tiktokSearchHistory')) || [];
+        let searchHistory = [];
+
+        function getUsernameFromToken() {
+            const token = localStorage.getItem("tiktokAdminToken");
+            if (!token) return "unknown";
+            try { return JSON.parse(atob(token.split('.')[1])).username; } catch(e) { return "unknown"; }
+        }
+
+        function saveSettingsToServer() {
+            socket.emit("saveUserSettings", { 
+                username: getUsernameFromToken(), 
+                searchHistory: searchHistory, 
+                widgetState: widgetState 
+            });
+        }
 
         function renderHistory() {
             const container = document.getElementById("historyContainer");
@@ -191,14 +319,14 @@
         function saveToHistory(username) {
             searchHistory = searchHistory.filter(u => u !== username);
             searchHistory.unshift(username); 
-            localStorage.setItem('tiktokSearchHistory', JSON.stringify(searchHistory));
             renderHistory();
+            saveSettingsToServer();
         }
 
         function deleteHistory(username) {
             searchHistory = searchHistory.filter(u => u !== username);
-            localStorage.setItem('tiktokSearchHistory', JSON.stringify(searchHistory));
             renderHistory();
+            saveSettingsToServer();
         }
 
         function loadFromHistory(username) {
@@ -209,15 +337,66 @@
         renderHistory();
 
         socket.on("connect", () => {
-            document.getElementById("statusMessage").innerText = "🟢 Connected to Server! Ready to start.";
+            document.getElementById("statusMessage").innerText = "🟢 ئامادەیە بۆ دەستپێکردن";
             document.getElementById("statusMessage").style.color = "#4cff4c";
+            socket.emit("requestInitialState", getUsernameFromToken());
+        });
+
+        socket.on("initialState", (data) => {
+            if (data.searchHistory) {
+                searchHistory = data.searchHistory;
+                renderHistory();
+            }
+            if (data.widgetState) {
+                widgetState = data.widgetState;
+                initDraggableWidgets(); // Re-apply positions
+            }
+            if (data.allComments) {
+                allComments = data.allComments;
+                document.getElementById("totalCommentsBadge").innerText = allComments.length.toLocaleString();
+                const searchWidget = document.getElementById('widget-search');
+                if (searchWidget && searchWidget.style.display !== 'none') {
+                    renderComments();
+                }
+            }
+            if (data.leaderboard) {
+                renderLeaderboardData(data.leaderboard);
+            }
         });
         
         socket.on("connect_error", (error) => {
-            document.getElementById("statusMessage").innerText = "🔴 Server offline. Run your start script!";
+            document.getElementById("statusMessage").innerText = "🔴 نەتوانرا پەیوەندی بکرێت، تکایە دووبارە هەوڵبدەرەوە!";
             document.getElementById("statusMessage").style.color = "#ff4c4c";
         });
         
+        function updatePollKeywords() {
+            const val = document.getElementById("pollKeywordsInput").value;
+            const keywords = val.split(",").map(k => k.trim()).filter(k => k);
+            socket.emit("setPollKeywords", keywords);
+        }
+
+        socket.on("pollUpdate", (sorted) => {
+            const container = document.getElementById("pollResults");
+            if(sorted.length === 0) {
+                container.innerHTML = '<span style="color: #aaa; margin-top: 5px;">دەنگدان هێشتا دەستی پێنەکردووە...</span>';
+                return;
+            }
+            container.innerHTML = sorted.map((p, index) => {
+                const rank = index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉";
+                return `<div class="poll-item">${rank} ${p.keyword.toUpperCase()} <span>${p.count}</span></div>`;
+            }).join("");
+        });
+
+        let alertTimeout;
+        function triggerVisualAlert() {
+            const alertBox = document.getElementById("visualAlert");
+            alertBox.style.display = "block";
+            clearTimeout(alertTimeout);
+            alertTimeout = setTimeout(() => {
+                alertBox.style.display = "none";
+            }, 5000);
+        }
+
         socket.on("streamStatus", (data) => {
             document.getElementById("statusMessage").innerText = data.message;
             document.getElementById("statusMessage").style.color = data.status === "error" ? "#ff4c4c" : "#4cff4c";
@@ -227,16 +406,178 @@
             document.getElementById("liveViewersBadge").innerText = data.count.toLocaleString();
         });
 
-        function showTab(tabId, btnElement) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            btnElement.classList.add('active');
-            
-            if(tabId === 'searchTab') renderComments();
+        // 📷 Camera Access Logic
+        let cameraStream = null;
+        async function toggleCamera() {
+            const videoElement = document.getElementById('cameraBg');
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                videoElement.srcObject = null;
+                cameraStream = null;
+                return;
+            }
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                videoElement.srcObject = cameraStream;
+            } catch (error) {
+                alert("❌ نەتوانرا کامێرا بکرێتەوە: " + error.message);
+            }
         }
 
-        const allComments = [];
+        // 🖱️ Draggable & Resizable Widget Logic
+        let widgetState = {};
+
+        function saveWidgetState() {
+            document.querySelectorAll('.widget-card').forEach(widget => {
+                widgetState[widget.id] = {
+                    display: widget.style.display,
+                    top: widget.style.top,
+                    left: widget.style.left,
+                    width: widget.style.width,
+                    height: widget.style.height
+                };
+            });
+            saveSettingsToServer();
+        }
+
+        function toggleWidget(id) {
+            const w = document.getElementById(id);
+            if(w.style.display === 'flex') {
+                w.style.display = 'none';
+            } else {
+                w.style.display = 'flex';
+                document.querySelectorAll('.widget-card').forEach(card => card.style.zIndex = 100);
+                w.style.zIndex = 1000;
+            }
+            saveWidgetState();
+        }
+
+        function initDraggableWidgets() {
+            document.querySelectorAll('.widget-card').forEach(widget => {
+                // Restore State from localStorage
+                if(widgetState[widget.id]) {
+                    widget.style.display = widgetState[widget.id].display || 'none';
+                    if(widgetState[widget.id].top) widget.style.top = widgetState[widget.id].top;
+                    if(widgetState[widget.id].left) widget.style.left = widgetState[widget.id].left;
+                    if(widgetState[widget.id].width) widget.style.width = widgetState[widget.id].width;
+                    if(widgetState[widget.id].height) widget.style.height = widgetState[widget.id].height;
+                }
+
+                const header = widget.querySelector('.widget-header');
+                const resizeHandle = widget.querySelector('.resize-handle');
+                let isDragging = false, isResizing = false;
+                let startX, startY, startLeft, startTop, startWidth, startHeight;
+
+                // Dragging Logic
+                header.addEventListener('pointerdown', (e) => {
+                    if(e.target.classList.contains('widget-close')) return;
+                    isDragging = true;
+                    startX = e.clientX; startY = e.clientY;
+                    startLeft = parseInt(window.getComputedStyle(widget).left) || 0;
+                    startTop = parseInt(window.getComputedStyle(widget).top) || 0;
+                    
+                    document.querySelectorAll('.widget-card').forEach(w => w.style.zIndex = 100);
+                    widget.style.zIndex = 1000;
+                    header.setPointerCapture(e.pointerId);
+                });
+
+                header.addEventListener('pointermove', (e) => {
+                    if(!isDragging) return;
+                    widget.style.left = (startLeft + e.clientX - startX) + 'px';
+                    widget.style.top = (startTop + e.clientY - startY) + 'px';
+                });
+
+                header.addEventListener('pointerup', (e) => {
+                    isDragging = false;
+                    header.releasePointerCapture(e.pointerId);
+                    saveWidgetState();
+                });
+
+                // Resizing Logic (Calculated for Right-To-Left UI)
+                resizeHandle.addEventListener('pointerdown', (e) => {
+                    isResizing = true;
+                    startX = e.clientX; startY = e.clientY;
+                    startWidth = parseInt(window.getComputedStyle(widget).width) || 350;
+                    startHeight = parseInt(window.getComputedStyle(widget).height) || 350;
+                    
+                    document.querySelectorAll('.widget-card').forEach(w => w.style.zIndex = 100);
+                    widget.style.zIndex = 1000;
+                    resizeHandle.setPointerCapture(e.pointerId);
+                    e.stopPropagation();
+                });
+
+                resizeHandle.addEventListener('pointermove', (e) => {
+                    if(!isResizing) return;
+                    widget.style.width = Math.max(250, startWidth + (startX - e.clientX)) + 'px';
+                    widget.style.height = Math.max(200, startHeight + (e.clientY - startY)) + 'px';
+                });
+
+                resizeHandle.addEventListener('pointerup', (e) => {
+                    isResizing = false;
+                    resizeHandle.releasePointerCapture(e.pointerId);
+                    saveWidgetState();
+                });
+            });
+        }
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            initDraggableWidgets();
+        });
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('✅ PWA Service Worker Registered!');
+                }).catch(err => console.log('❌ SW Registration failed:', err));
+            });
+        }
+
+        let allComments = [];
+        
+        function renderLeaderboardData(data) {
+            document.getElementById("trackedUsersBadge").innerText = data.totalUniqueUsers.toLocaleString();
+            renderList("commentsList", data.topComments, "commentCount");
+            renderList("likesList", data.topLikes, "likeCount");
+            renderList("giftsList", data.topGifts, "giftCount");
+            renderList("sharesList", data.topShares, "shareCount");
+        }
+
+        function saveSessionToDB() {
+            const username = document.getElementById("usernameInput").value.trim();
+            if (!username) return alert("⚠️ تکایە سەرەتا ناوی بەکارهێنەر بنووسە!");
+            socket.emit("saveSessionToD1", username);
+        }
+
+        function viewHistory() {
+            socket.emit("getPastSessions");
+        }
+
+        socket.on("pastSessionsData", (sessions) => {
+            if (sessions.length === 0) return openModal("📜 مێژووی دانیشتنەکان", "<p style='color:#aaa;'>هیچ دانیشتنێک پاشەکەوت نەکراوە.</p>");
+            
+            let html = `<table class="adm-table" style="width:100%; text-align:right; border-collapse:collapse; color:white;">
+                <tr><th style="border-bottom:1px solid #444; padding:10px;">بەکارهێنەر</th><th style="border-bottom:1px solid #444; padding:10px;">بەروار</th><th style="border-bottom:1px solid #444; padding:10px;">کردار</th></tr>` + 
+                sessions.map(s => `<tr>
+                    <td style="border-bottom:1px solid #333; padding:10px;">@${s.username}</td>
+                    <td style="border-bottom:1px solid #333; padding:10px;" dir="ltr">${new Date(s.start_time).toLocaleString()}</td>
+                    <td style="border-bottom:1px solid #333; padding:10px;"><button style="background:#fe2c55; border:none; padding:5px 15px; color:white; border-radius:5px; cursor:pointer; font-weight:bold;" onclick="socket.emit('loadPastSession', ${s.id}); document.getElementById('customModal').style.display='none';">بارکردن</button></td>
+                </tr>`).join("") + `</table>`;
+            openModal("📜 مێژووی دانیشتنەکان", html);
+        });
+
+        socket.on("pastSessionLoaded", (sessionData) => {
+            const users = Object.values(sessionData);
+            const topComments = users.sort((a, b) => b.commentCount - a.commentCount).slice(0, 30);
+            const topLikes = users.sort((a, b) => b.likeCount - a.likeCount).slice(0, 30);
+            const topGifts = users.sort((a, b) => b.giftCount - a.giftCount).slice(0, 30);
+            const topShares = users.sort((a, b) => b.shareCount - a.shareCount).slice(0, 30);
+            
+            const processedLeaderboard = { topComments, topLikes, topGifts, topShares, totalUniqueUsers: users.length };
+            localStorage.setItem('tiktokLiveLeaderboard', JSON.stringify(processedLeaderboard));
+            renderLeaderboardData(processedLeaderboard);
+            document.getElementById("statusMessage").innerText = "✅ داتا کۆنەکان بارکران.";
+        });
 
         socket.on("newComment", (data) => {
             const now = new Date();
@@ -250,9 +591,21 @@
             data.timestamp = `${dateStr} ${timeStr}`;
             
             allComments.push(data);
+            if(allComments.length > 500) allComments.shift();
+            // Data is synced directly from server memory across devices
             document.getElementById("totalCommentsBadge").innerText = allComments.length.toLocaleString();
             
-            if(document.getElementById('searchTab').classList.contains('active')) {
+            const alertKeywords = document.getElementById("alertKeywordsInput").value
+                .split(",")
+                .map(k => k.trim().toLowerCase())
+                .filter(k => k);
+                
+            if (alertKeywords.length > 0 && alertKeywords.some(keyword => String(data.comment).toLowerCase().includes(keyword))) {
+                triggerVisualAlert();
+            }
+
+            const searchWidget = document.getElementById('widget-search');
+            if (searchWidget && searchWidget.style.display !== 'none') {
                 renderComments();
             }
         });
@@ -276,8 +629,17 @@
                 return;
             }
 
-            container.innerHTML = results.slice(-300).reverse().map(c => `
-                <div class="comment-item">
+            const alertKeywords = document.getElementById("alertKeywordsInput").value
+                .split(",")
+                .map(k => k.trim().toLowerCase())
+                .filter(k => k);
+
+            container.innerHTML = results.slice(-300).reverse().map(c => {
+                const safeCommentLower = String(c.comment || "").toLowerCase();
+                const isAlert = alertKeywords.length > 0 && alertKeywords.some(keyword => safeCommentLower.includes(keyword));
+                
+                return `
+                <div class="comment-item ${isAlert ? 'alert-highlight' : ''}">
                     <img class="avatar" src="${c.profilePictureUrl}" onerror="this.src='https://www.tiktok.com/favicon.ico'">
                     <div class="comment-text">
                         <span class="comment-name">
@@ -288,16 +650,12 @@
                         <span style="color: #ddd; margin-top: 5px; word-break: break-word;" dir="auto">${c.comment}</span>
                     </div>
                 </div>
-            `).join("");
+                `;
+            }).join("");
         }
 
         socket.on("leaderboardUpdate", (data) => {
-            document.getElementById("trackedUsersBadge").innerText = data.totalUniqueUsers.toLocaleString();
-            
-            renderList("commentsList", data.topComments, "commentCount");
-            renderList("likesList", data.topLikes, "likeCount");
-            renderList("giftsList", data.topGifts, "giftCount");
-            renderList("sharesList", data.topShares, "shareCount");
+            renderLeaderboardData(data);
         });
 
         function getRankBadge(index) {
@@ -412,8 +770,8 @@
             if (hideDuplicateVisits) {
                 const seen = new Set();
                 visits = analytics.filter(v => {
-                    if (seen.has(v.ip_address)) return false;
-                    seen.add(v.ip_address);
+                    if (seen.has(v.ip)) return false;
+                    seen.add(v.ip);
                     return true;
                 });
             }
@@ -424,10 +782,10 @@
             const isThisMonth = d => new Date(d).getMonth() === now.getMonth() && new Date(d).getFullYear() === now.getFullYear();
             const isThisYear = d => new Date(d).getFullYear() === now.getFullYear();
 
-            const todayC = visits.filter(v => isToday(v.visit_time)).length;
-            const weekC = visits.filter(v => isThisWeek(v.visit_time)).length;
-            const monthC = visits.filter(v => isThisMonth(v.visit_time)).length;
-            const yearC = visits.filter(v => isThisYear(v.visit_time)).length;
+            const todayC = visits.filter(v => isToday(v.time)).length;
+            const weekC = visits.filter(v => isThisWeek(v.time)).length;
+            const monthC = visits.filter(v => isThisMonth(v.time)).length;
+            const yearC = visits.filter(v => isThisYear(v.time)).length;
 
             let html = `
                 <style>
@@ -474,8 +832,8 @@
             if (activeTab === 'visits') {
                 contentDiv.innerHTML = `
                     <table class="adm-table">
-                        <tr><th>IP ئەدرێس</th><th>کات و بەروار</th></tr>
-                        ${visits.slice(0, 100).map(v => `<tr><td dir="ltr" style="text-align:right;">${v.ip_address || 'N/A'}</td><td dir="ltr" style="text-align:right;">${new Date(v.visit_time).toLocaleString()}</td></tr>`).join('')}
+                        <tr><th>ئەدرێس</th><th>کات و بەروار</th></tr>
+                        ${visits.slice(0, 100).map(v => `<tr><td dir="ltr" style="text-align:right;">${v.ip || 'N/A'}</td><td dir="ltr" style="text-align:right;">${new Date(v.time).toLocaleString()}</td></tr>`).join('')}
                     </table>
                 `;
             } 
@@ -484,9 +842,9 @@
                     <table class="adm-table">
                         <tr><th>بەکارهێنەر</th><th>کاتی چوونە ژوورەوە</th><th>زانیاری زیاتر</th></tr>
                         ${logins.map(l => `<tr>
-                            <td>${l.username}</td>
-                            <td dir="ltr" style="text-align:right;">${new Date(l.login_time).toLocaleString()}</td>
-                            <td><button class="adm-btn" style="background:#2196F3;" onclick="alert('مێژووی چالاکی بەکارهێنەر:\\n\\nناو: ${l.username}\\nکات: ${new Date(l.login_time).toLocaleString()}\\nمانەوە: ${l.duration_minutes ? l.duration_minutes + ' خولەک' : 'ئێستا چالاکە'}')">👁️ بینین</button></td>
+                            <td>${l.user}</td>
+                            <td dir="ltr" style="text-align:right;">${new Date(l.time).toLocaleString()}</td>
+                            <td><button class="adm-btn" style="background:#2196F3;" onclick="alert('مێژووی چالاکی بەکارهێنەر:\\n\\nناو: ${l.user}\\nکات: ${new Date(l.time).toLocaleString()}\\nمانەوە: ${l.duration ? l.duration + ' خولەک' : 'ئێستا چالاکە'}')">👁️ بینین</button></td>
                         </tr>`).join('')}
                     </table>
                 `;
@@ -498,17 +856,29 @@
                         <tr><th>ناو</th><th>بەرواری دروستکردن</th><th>کردارەکان</th></tr>
                         ${users.map(u => `
                             <tr>
-                                <td>${u.username}</td>
-                                <td dir="ltr" style="text-align:right;">${u.created_at.split('T')[0]}</td>
+                                <td>${u.name}</td>
+                                <td dir="ltr" style="text-align:right;">${u.joined ? u.joined.split('T')[0] : 'N/A'}</td>
                                 <td>
-                                    <button class="adm-btn" style="background:#ff9800;" onclick="socket.emit('adminKickUser', '${u.username}')">دەرکردن (Kick)</button>
-                                    <button class="adm-btn" style="background:#f44336;" onclick="if(confirm('دڵنیایت لە سڕینەوەی ${u.username}؟')) socket.emit('adminDeleteUser', ${u.id})">سڕینەوە</button>
+                                    <button class="adm-btn" style="background:#2196F3;" onclick="editAdminUser(${u.uid}, '${u.name}')">دەستکاری</button>
+                                    <button class="adm-btn" style="background:#ff9800;" onclick="socket.emit('adminKickUser', '${u.name}')">دەرکردن</button>
+                                    <button class="adm-btn" style="background:#f44336;" onclick="if(confirm('دڵنیایت لە سڕینەوەی ${u.name}؟')) socket.emit('adminDeleteUser', ${u.uid})">سڕینەوە</button>
                                 </td>
                             </tr>
                         `).join('')}
                     </table>
                 `;
             }
+        }
+
+        function editAdminUser(uid, oldName) {
+            const newName = prompt("ناوی بەکارهێنەری نوێ بنووسە (یان بەتاڵی جێبهێڵە بۆ گۆڕین نەکردنی):", oldName);
+            if(newName === null) return; 
+            const newPass = prompt("وشەی نهێنی نوێ بنووسە (یان بەتاڵی جێبهێڵە ئەگەر ناتەوێت بیگۆڕیت):");
+            if(newPass === null) return; 
+            
+            const finalName = newName.trim() === "" ? oldName : newName.trim();
+            socket.emit("adminEditUser", { uid: uid, newName: finalName, newPass: newPass });
+            alert("⏳ داتاکان خەریکە نوێ دەکرێنەوە...");
         }
 
         function addAdminUser() {

@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "build": "esbuild server.js --bundle --platform=node --packages=external --outfile=build.js && javascript-obfuscator build.js --output dist-server.js --target node --string-array true --dead-code-injection true",
+    "start": "node dist-server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
