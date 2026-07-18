@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tiktok-tracker-v1';
+const CACHE_NAME = 'tiktok-tracker-v2';
 const ASSETS = [
     './index.html',
     './login.html',

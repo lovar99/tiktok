@@ -131,7 +131,7 @@
     </style>
 
     <!-- Main Controls Widget (Movable & Resizable Header) -->
-    <div id="widget-controls" class="widget-card" style="top: 20px; left: 5%; width: 90vw; min-height: 100px; display: flex;">
+    <div id="widget-controls" class="widget-card" style="top: 20px; left: 5%; width: 90vw; min-height: 100px; max-height: 85vh; display: flex;">
         <div class="widget-header">
             <span id="secretAdminTrigger" style="user-select: none; font-size: 16px;">🏆 کۆنتڕۆڵی لایڤ</span>
             <span class="widget-close" onclick="toggleWidget('widget-controls')">✖</span>
@@ -455,18 +455,46 @@
             if (cameraStream) {
                 cameraStream.getTracks().forEach(track => track.stop());
             }
+            
             try {
-                // Force High Definition Resolution (1080p to 4K limits)
+                // Attempt 1: HD
                 cameraStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        facingMode: currentFacingMode,
-                        width: { ideal: 1920, max: 3840 },
-                        height: { ideal: 1080, max: 2160 }
-                    } 
+                    video: { facingMode: currentFacingMode, width: { ideal: 1280 }, height: { ideal: 720 } } 
                 });
+            } catch (error1) {
+                try {
+                    // Attempt 2: Normal Quality
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: currentFacingMode } 
+                    });
+                } catch (error2) {
+                    try {
+                        // Attempt 3: Ultimate fallback
+                        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    } catch (error3) {
+                        alert("❌ نەتوانرا کامێرا بکرێتەوە: " + error3.message);
+                        return;
+                    }
+                }
+            }
+
+            if (cameraStream) {
                 videoElement.srcObject = cameraStream;
-            } catch (error) {
-                alert("❌ نەتوانرا کامێرا بکرێتەوە: " + error.message);
+                
+                // Hardware-level Auto-Focus Injection
+                try {
+                    const track = cameraStream.getVideoTracks()[0];
+                    const capabilities = track.getCapabilities();
+                    
+                    // If the phone's lens supports continuous autofocus, force it on!
+                    if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+                        await track.applyConstraints({
+                            advanced: [{ focusMode: 'continuous' }]
+                        });
+                    }
+                } catch (err) {
+                    console.log("Autofocus not supported by this browser/device.", err);
+                }
             }
         }
 
@@ -499,8 +527,20 @@
                 w.style.display = 'none';
             } else {
                 w.style.display = 'flex';
+                
+                // Safe-zone reset: If widget got lost off-screen, bring it back to the top left!
+                if (w.style.top === 'auto' || parseInt(w.style.top) < 0 || parseInt(w.style.top) > window.innerHeight) {
+                    w.style.top = '100px';
+                }
+                if (w.style.left === 'auto' || parseInt(w.style.left) < 0 || parseInt(w.style.left) > window.innerWidth) {
+                    w.style.left = '20px';
+                }
+                
                 document.querySelectorAll('.widget-card').forEach(card => card.style.zIndex = 100);
                 w.style.zIndex = 1000;
+                
+                // Automatically close the side menu on mobile so you can see the widget!
+                document.getElementById('sideMenu').classList.remove('open');
             }
             saveWidgetState();
         }
