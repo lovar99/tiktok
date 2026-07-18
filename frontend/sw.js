@@ -2,7 +2,8 @@ const CACHE_NAME = 'tiktok-tracker-v1';
 const ASSETS = [
     './index.html',
     './login.html',
-    './manifest.json'
+    './manifest.json',
+    './icon.svg'
 ];
 
 self.addEventListener('install', (e) => {

@@ -111,51 +111,78 @@
     <!-- Camera Background for Mobile Screen-sharing -->
     <video id="cameraBg" autoplay playsinline muted></video>
 
-    <!-- 11-Tap Secret Trigger added to the H1 -->
-    <h1 id="secretAdminTrigger" style="user-select: none; position: relative; z-index: 10; text-shadow: 0 4px 10px rgba(0,0,0,0.8);">🏆 داشبۆردی ئامارەکانی لایڤ</h1>
+    <!-- Floating Button to Toggle Controls -->
+    <div class="fab-menu" onclick="toggleWidget('widget-controls')" title="کردنەوەی کۆنتڕۆڵەکان">⚙️</div>
 
-    <div class="stats-header">
-        <div class="badge" onclick="fetchAllUsers()" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#1e1e1e'" title="بینینی هەموو بەکارهێنەران">👥 بەکارهێنەرە تۆمارکراوەکان: <span id="trackedUsersBadge">0</span></div>
-        <div class="badge">🔴 بینەرانی لایڤ: <span id="liveViewersBadge">0</span></div>
-        <div class="badge">💬 گشتی کۆمێنتەکان: <span id="totalCommentsBadge">0</span></div>
-    </div>
-    
-    <div class="controls" id="dashboardControls">
-        <input type="text" id="usernameInput" placeholder="ناوی بەکارهێنەری تیکتۆک بنووسە..." oninput="this.value = this.value.toLowerCase().replace(/@/g, '').trim()" />
-        <input type="text" id="pollKeywordsInput" placeholder="دەنگدان (بۆ نموونە: A, B, C)" oninput="updatePollKeywords()" style="width: 150px;" />
-        <input type="text" id="alertKeywordsInput" placeholder="وشەی قەدەغەکراو (بە کۆما)" style="width: 150px;" />
-        <button class="start-btn" onclick="startStream()">دەستپێکردنی چاودێری</button>
-        <button class="start-btn" style="background: #2196F3;" onclick="toggleCamera()">📷 کامێرا</button>
-        <span id="statusMessage">چاوەڕێی دەستپێکردن...</span>
-        <button class="save-btn" onclick="saveDashboardHTML()">💾 پاشەکەوتکردنی داشبۆرد</button>
-    </div>
-
-    <div id="historyContainer" class="history-container"></div>
-
-    <div id="visualAlert" style="display: none; background: #ff4c4c; color: white; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 20px; text-align: center; margin-bottom: 20px; width: 95%; max-width: 1400px; animation: flash 1s infinite alternate; border: 2px solid white; box-shadow: 0 0 15px red;">⚠️ ئاگاداری: وشەی گرنگ یان قەدەغەکراو لە کۆمێنتەکان بینرا!</div>
-
-    <div class="controls" style="background: #2a2a2a; border: 1px solid #444; justify-content: flex-start;">
-        <h3 style="margin: 0 15px 0 0; color: #fe2c55;">📊 ڕاپرسی ڕاستەوخۆ:</h3>
-        <div id="pollResults" style="display: flex; gap: 15px; flex-wrap: wrap; flex-grow: 1;">
-            <span style="color: #aaa; margin-top: 5px;">دەنگدان هێشتا دەستی پێنەکردووە...</span>
-        </div>
-    </div>
-    
     <style>
-        @keyframes flash {
-            0% { opacity: 1; }
-            100% { opacity: 0.6; }
-        }
-        .poll-item { background: #1e1e1e; padding: 8px 15px; border-radius: 8px; font-weight: bold; border: 1px solid #fe2c55; display: flex; align-items: center; }
-        .poll-item span { color: #fe2c55; margin-left: 10px; font-size: 20px; }
-        .comment-item.alert-highlight { border: 2px solid #ff4c4c; background: rgba(255, 76, 76, 0.15) !important; }
+        .poll-item { background: #1e1e1e; padding: 6px 12px; border-radius: 8px; font-weight: bold; border: 1px solid #fe2c55; display: flex; align-items: center; }
+        .poll-item span { color: #fe2c55; margin-left: 10px; font-size: 16px; }
+        
+        .fab-menu { position: fixed; bottom: 20px; left: 20px; background: #fe2c55; color: white; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 2000; cursor: pointer; border: 2px solid #fff; transition: 0.2s; user-select: none; }
+        .fab-menu:active { transform: scale(0.9); }
+        .resize-handle { width: 50px !important; height: 50px !important; background: linear-gradient(135deg, transparent 50%, #fe2c55 50%) !important; bottom: -1px; left: -1px; border-bottom-left-radius: 12px; z-index: 100; touch-action: none; }
+        
+        .controls-grid { display: flex; flex-direction: column; gap: 8px; }
+        .controls-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; width: 100%; }
+        .controls-row input, .controls-row button { flex: 1; min-width: 30%; box-sizing: border-box; padding: 10px; font-size: 14px; border-radius: 6px; outline: none; border: none; }
+        .controls-row input { background: #2a2a2a; color: white; border: 1px solid #444; }
+        .badge { padding: 6px 10px !important; font-size: 13px !important; flex: 1; text-align: center; border-radius: 20px; background: #1e1e1e; border: 1px solid #333; font-weight: bold; }
+        .badge span { color: #fe2c55; }
     </style>
+
+    <!-- Main Controls Widget (Movable & Resizable Header) -->
+    <div id="widget-controls" class="widget-card" style="top: 20px; left: 5%; width: 90vw; min-height: 100px; display: flex;">
+        <div class="widget-header">
+            <span id="secretAdminTrigger" style="user-select: none; font-size: 16px;">🏆 کۆنتڕۆڵی لایڤ</span>
+            <span class="widget-close" onclick="toggleWidget('widget-controls')">✖</span>
+        </div>
+        <div class="widget-content controls-grid">
+            
+            <div class="controls-row">
+                <div class="badge" onclick="fetchAllUsers()" style="cursor: pointer;" title="هەموو بەکارهێنەران">👥 <span id="trackedUsersBadge">0</span></div>
+                <div class="badge">🔴 <span id="liveViewersBadge">0</span></div>
+                <div class="badge">💬 <span id="totalCommentsBadge">0</span></div>
+            </div>
+
+            <div class="controls-row">
+                <input type="text" id="usernameInput" placeholder="ناوی تیکتۆک..." oninput="this.value = this.value.toLowerCase().replace(/@/g, '').trim()" />
+                <button class="start-btn" onclick="startStream()">دەستپێکردن</button>
+            </div>
+            
+            <div id="pollContainer" class="controls-row" style="flex-direction: column; align-items: stretch; gap: 5px;">
+                <div class="controls-row poll-input-row" style="width: 100%;">
+                    <input type="text" class="poll-keyword" placeholder="وشەی دەنگدان (نموونە: یەکەم)" oninput="updatePollKeywords()" style="flex: 1;" />
+                    <button class="start-btn" style="background: #4CAF50; min-width: 45px; flex: 0; padding: 10px;" onclick="addPollField()">+</button>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <button class="start-btn" style="background: #2196F3;" onclick="toggleCamera()">📷 کامێرا</button>
+                <button class="start-btn" style="background: #9c27b0;" onclick="switchCamera()">🔄 سوڕاندن</button>
+                <button class="save-btn" onclick="saveDashboardHTML()" style="background: #4CAF50;">💾 پاشەکەوت</button>
+            </div>
+
+            <div class="controls-row" style="background: #2a2a2a; padding: 8px; border-radius: 6px; border: 1px solid #444;">
+                <span id="statusMessage" style="font-size: 13px; width:100%; text-align:center;">چاوەڕێی دەستپێکردن...</span>
+            </div>
+
+            <div id="historyContainer" class="history-container" style="margin-bottom: 0; width: 100%; gap: 5px;"></div>
+
+            <div class="controls-row" style="background: #2a2a2a; padding: 8px; border-radius: 6px; flex-direction: column; align-items: flex-start; border: 1px solid #444;">
+                <h3 style="margin: 0 0 5px 0; color: #fe2c55; font-size: 14px;">📊 ڕاپرسی:</h3>
+                <div id="pollResults" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <span style="color: #aaa; font-size: 12px;">هێشتا دەستی پێنەکردووە...</span>
+                </div>
+            </div>
+        </div>
+        <div class="resize-handle"></div>
+    </div>
 
     <!-- Side Panel Swiper -->
     <div id="sideMenu" class="glass-panel">
         <div class="menu-toggle" onclick="document.getElementById('sideMenu').classList.toggle('open')">☰</div>
         <h2 style="color: white; margin-top: 0; font-size: 20px; border-bottom: 1px solid #444; padding-bottom: 10px;">کارتەکان (Widgets)</h2>
-        <button class="menu-btn" onclick="toggleWidget('widget-comments')">💬 باشترین کۆمێنتەکان</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-comments')">💬 زۆرترین کۆمێنتەکان</button>
         <button class="menu-btn" onclick="toggleWidget('widget-likes')">❤️ زۆرترین لایکەکان</button>
         <button class="menu-btn" onclick="toggleWidget('widget-gifts')">🎁 زۆرترین دیارییەکان</button>
         <button class="menu-btn" onclick="toggleWidget('widget-shares')">↗️ زۆرترین شەیرەکان</button>
@@ -168,7 +195,7 @@
     <!-- Draggable Floating Widgets -->
     <div id="widget-comments" class="widget-card" style="top: 250px; left: 50px; width: 350px; height: 350px;">
         <div class="widget-header">
-            <span>💬 باشترین کۆمێنتەکان</span>
+            <span>💬 زۆرترین کۆمێنتەکان</span>
             <span class="widget-close" onclick="toggleWidget('widget-comments')">✖</span>
         </div>
         <div class="widget-content">
@@ -369,16 +396,28 @@
             document.getElementById("statusMessage").style.color = "#ff4c4c";
         });
         
+        function addPollField() {
+            const container = document.getElementById("pollContainer");
+            const div = document.createElement("div");
+            div.className = "controls-row poll-input-row";
+            div.style.width = "100%";
+            div.innerHTML = `
+                <input type="text" class="poll-keyword" placeholder="وشەی دەنگدان..." oninput="updatePollKeywords()" style="flex: 1;" />
+                <button class="start-btn" style="background: #ff4c4c; min-width: 45px; flex: 0; padding: 10px;" onclick="this.parentElement.remove(); updatePollKeywords();">-</button>
+            `;
+            container.appendChild(div);
+        }
+
         function updatePollKeywords() {
-            const val = document.getElementById("pollKeywordsInput").value;
-            const keywords = val.split(",").map(k => k.trim()).filter(k => k);
+            const inputs = document.querySelectorAll(".poll-keyword");
+            const keywords = Array.from(inputs).map(input => input.value.trim()).filter(k => k !== "");
             socket.emit("setPollKeywords", keywords);
         }
 
         socket.on("pollUpdate", (sorted) => {
             const container = document.getElementById("pollResults");
             if(sorted.length === 0) {
-                container.innerHTML = '<span style="color: #aaa; margin-top: 5px;">دەنگدان هێشتا دەستی پێنەکردووە...</span>';
+                container.innerHTML = '<span style="color: #aaa; font-size: 12px;">هێشتا دەستی پێنەکردووە...</span>';
                 return;
             }
             container.innerHTML = sorted.map((p, index) => {
@@ -386,16 +425,6 @@
                 return `<div class="poll-item">${rank} ${p.keyword.toUpperCase()} <span>${p.count}</span></div>`;
             }).join("");
         });
-
-        let alertTimeout;
-        function triggerVisualAlert() {
-            const alertBox = document.getElementById("visualAlert");
-            alertBox.style.display = "block";
-            clearTimeout(alertTimeout);
-            alertTimeout = setTimeout(() => {
-                alertBox.style.display = "none";
-            }, 5000);
-        }
 
         socket.on("streamStatus", (data) => {
             document.getElementById("statusMessage").innerText = data.message;
@@ -408,6 +437,8 @@
 
         // 📷 Camera Access Logic
         let cameraStream = null;
+        let currentFacingMode = 'environment'; // Default to Back Camera
+
         async function toggleCamera() {
             const videoElement = document.getElementById('cameraBg');
             if (cameraStream) {
@@ -416,11 +447,33 @@
                 cameraStream = null;
                 return;
             }
+            startCamera();
+        }
+
+        async function startCamera() {
+            const videoElement = document.getElementById('cameraBg');
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
             try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                // Force High Definition Resolution (1080p to 4K limits)
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: currentFacingMode,
+                        width: { ideal: 1920, max: 3840 },
+                        height: { ideal: 1080, max: 2160 }
+                    } 
+                });
                 videoElement.srcObject = cameraStream;
             } catch (error) {
                 alert("❌ نەتوانرا کامێرا بکرێتەوە: " + error.message);
+            }
+        }
+
+        function switchCamera() {
+            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            if (cameraStream) {
+                startCamera(); // Immediately flip if already on
             }
         }
 
@@ -508,8 +561,9 @@
 
                 resizeHandle.addEventListener('pointermove', (e) => {
                     if(!isResizing) return;
-                    widget.style.width = Math.max(250, startWidth + (startX - e.clientX)) + 'px';
-                    widget.style.height = Math.max(200, startHeight + (e.clientY - startY)) + 'px';
+                    // Lowered minimum width and height to easily fit mobile screens!
+                    widget.style.width = Math.max(120, startWidth + (startX - e.clientX)) + 'px';
+                    widget.style.height = Math.max(100, startHeight + (e.clientY - startY)) + 'px';
                 });
 
                 resizeHandle.addEventListener('pointerup', (e) => {
@@ -594,15 +648,6 @@
             if(allComments.length > 500) allComments.shift();
             // Data is synced directly from server memory across devices
             document.getElementById("totalCommentsBadge").innerText = allComments.length.toLocaleString();
-            
-            const alertKeywords = document.getElementById("alertKeywordsInput").value
-                .split(",")
-                .map(k => k.trim().toLowerCase())
-                .filter(k => k);
-                
-            if (alertKeywords.length > 0 && alertKeywords.some(keyword => String(data.comment).toLowerCase().includes(keyword))) {
-                triggerVisualAlert();
-            }
 
             const searchWidget = document.getElementById('widget-search');
             if (searchWidget && searchWidget.style.display !== 'none') {
@@ -629,17 +674,9 @@
                 return;
             }
 
-            const alertKeywords = document.getElementById("alertKeywordsInput").value
-                .split(",")
-                .map(k => k.trim().toLowerCase())
-                .filter(k => k);
-
             container.innerHTML = results.slice(-300).reverse().map(c => {
-                const safeCommentLower = String(c.comment || "").toLowerCase();
-                const isAlert = alertKeywords.length > 0 && alertKeywords.some(keyword => safeCommentLower.includes(keyword));
-                
                 return `
-                <div class="comment-item ${isAlert ? 'alert-highlight' : ''}">
+                <div class="comment-item">
                     <img class="avatar" src="${c.profilePictureUrl}" onerror="this.src='https://www.tiktok.com/favicon.ico'">
                     <div class="comment-text">
                         <span class="comment-name">

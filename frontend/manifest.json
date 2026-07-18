@@ -1,21 +1,17 @@
 {
-  "name": "TikTok Live Tracker SaaS",
+  "name": "TikTok Live Dashboard",
   "short_name": "Live Stats",
   "start_url": "./index.html",
-  "display": "fullscreen",
+  "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#121212",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://www.tiktok.com/favicon.ico",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "https://www.tiktok.com/favicon.ico",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "./icon.svg",
+      "sizes": "192x192 512x512 any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
