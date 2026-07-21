@@ -173,6 +173,17 @@
         .carousel-tab { padding: 6px 12px; background: #2b3143; border-radius: 20px; font-size: 13px; cursor: pointer; color: #aaa; border: 1px solid transparent; }
         .carousel-tab.active { background: #ff3b5c; color: white; border-color: rgba(255,255,255,0.3); }
 
+        .widget-header, .resize-handle { touch-action: none; }
+
+        @keyframes greenFlash {
+            0% { background-color: rgba(0, 255, 0, 0.4); transform: scale(1.02); }
+            100% { background-color: transparent; transform: scale(1); }
+        }
+        .update-flash {
+            animation: greenFlash 0.8s ease-out;
+            border-radius: 8px;
+        }
+
         /* Container Queries for Auto-Scaling inside Widgets */
         .widget-content { container-type: inline-size; container-name: widgetbox; }
         
@@ -196,7 +207,7 @@
         }
 
         /* Dashboard Layout */
-        #widget-controls { position: fixed !important; top: 20px !important; right: 20px !important; z-index: 3000 !important; height: auto !important; min-height: unset !important; }
+        #widget-controls { position: fixed; top: 20px; right: 20px; z-index: 3000 !important; height: auto !important; min-height: unset !important; }
         .dashboard-grid { width: 100vw; height: 100vh; position: relative; z-index: 50; pointer-events: none; }
         .dashboard-grid > * { pointer-events: auto; }
         
@@ -394,16 +405,20 @@
                 <span class="widget-close" onclick="toggleWidget('widget-all-in-one')">✖</span>
             </div>
         </div>
-        <div class="carousel-nav">
-            <div class="carousel-tab active" onclick="document.getElementById('mobileCarousel').scrollBy({left: -9999, behavior: 'smooth'})">کۆمێنت</div>
-            <div class="carousel-tab" onclick="document.getElementById('mobileCarousel').scrollBy({left: document.getElementById('mobileCarousel').offsetWidth, behavior: 'smooth'})">لایک</div>
-            <div class="carousel-tab" onclick="document.getElementById('mobileCarousel').scrollBy({left: document.getElementById('mobileCarousel').offsetWidth*2, behavior: 'smooth'})">دیاری</div>
-            <div class="carousel-tab" onclick="document.getElementById('mobileCarousel').scrollBy({left: document.getElementById('mobileCarousel').offsetWidth*3, behavior: 'smooth'})">شەیر</div>
+        <div class="carousel-nav" id="mobileCarouselNav">
+            <div class="carousel-tab active" onclick="document.getElementById('mobileCarousel').scrollTo({left: 0, behavior: 'smooth'})">ل.کۆمێنت</div>
+            <div class="carousel-tab" onclick="document.getElementById('mobileCarousel').scrollTo({left: document.getElementById('mobileCarousel').offsetWidth, behavior: 'smooth'})">ت.کۆمێنت</div>
+            <div class="carousel-tab" onclick="document.getElementById('mobileCarousel').scrollTo({left: document.getElementById('mobileCarousel').offsetWidth*2, behavior: 'smooth'})">لایک</div>
+            <div class="carousel-tab" onclick="document.getElementById('mobileCarousel').scrollTo({left: document.getElementById('mobileCarousel').offsetWidth*3, behavior: 'smooth'})">دیاری</div>
+            <div class="carousel-tab" onclick="document.getElementById('mobileCarousel').scrollTo({left: document.getElementById('mobileCarousel').offsetWidth*4, behavior: 'smooth'})">شەیر</div>
         </div>
         <div class="widget-content" style="padding: 0; overflow: hidden; height: calc(100% - 85px);">
             <div id="mobileCarousel" class="mobile-carousel">
+                <div class="carousel-item" id="mobile-searchList">
+                    <!-- Live Comments -->
+                </div>
                 <div class="carousel-item" id="mobile-commentsList">
-                    <!-- Comments synced here -->
+                    <!-- Top Comments synced here -->
                 </div>
                 <div class="carousel-item" id="mobile-likesList">
                     <!-- Likes synced here -->
@@ -494,7 +509,8 @@
             socket.emit("saveUserSettings", { 
                 username: getUsernameFromToken(), 
                 searchHistory: searchHistory, 
-                widgetState: widgetState 
+                widgetState: widgetState,
+                activeStreamTarget: sessionStorage.getItem("tiktokLiveActiveUser")
             });
         }
 
@@ -544,7 +560,7 @@
                 document.getElementById("statusMessage").innerText = "🟢 ئامادەیە بۆ دەستپێکردن";
             }
             document.getElementById("statusMessage").style.color = "#4cff4c";
-            socket.emit("requestInitialState", getUsernameFromToken());
+            socket.emit("requestInitialState", getUsernameFromToken(), savedUser);
         });
 
         socket.on("initialState", (data) => {
@@ -564,16 +580,17 @@
             if (data.leaderboard) {
                 renderLeaderboardData(data.leaderboard);
             }
-            
-            // Sync UI button based on active stream tracking
-            const savedUser = sessionStorage.getItem("tiktokLiveActiveUser");
-            if (savedUser) {
-                const btn = document.getElementById("connectBtn");
-                if (btn) {
-                    btn.innerText = "وەستاندنی ستریم (Stop)";
-                    btn.style.background = "#ff4c4c";
-                    btn.onclick = stopStream;
-                }
+            if (data.activeStreamTarget) {
+                sessionStorage.setItem("tiktokLiveActiveUser", data.activeStreamTarget);
+                document.getElementById("usernameInput").value = data.activeStreamTarget;
+            }
+            if (data.isActive) {
+                document.getElementById("statusMessage").innerText = "✅ پەیوەندی سەرکەوتوو بوو! (Connected)";
+                document.getElementById("statusMessage").style.color = "#00FF00";
+            } else if (sessionStorage.getItem("tiktokLiveActiveUser")) {
+                sessionStorage.removeItem("tiktokLiveActiveUser");
+                document.getElementById("statusMessage").innerText = "چاوەڕێی دەستپێکردن...";
+                document.getElementById("statusMessage").style.color = "#aaa";
             }
         });
         
@@ -855,7 +872,6 @@
                 document.getElementById('sideMenu').classList.remove('open');
             }
             saveWidgetState();
-            autoArrangeWidgets(); // Automatically snap layout when closing/opening
         }
 
         function initDraggableWidgets() {
@@ -998,7 +1014,28 @@
             }
             if (isSmoothScroll) startCommentQueue();
             
+            // Mobile Swipe Sync
+            const carousel = document.getElementById("mobileCarousel");
+            const navTabs = document.querySelectorAll("#mobileCarouselNav .carousel-tab");
+            if (carousel && navTabs.length > 0) {
+                carousel.addEventListener('scroll', () => {
+                    const index = Math.round(carousel.scrollLeft / carousel.offsetWidth);
+                    navTabs.forEach((tab, i) => {
+                        if (i === index) tab.classList.add('active');
+                        else tab.classList.remove('active');
+                    });
+                });
+            }
+            
             setTimeout(autoArrangeWidgets, 500); // Organize immediately on load
+            
+            // Mobile initial view
+            if (window.innerWidth <= 768 && !localStorage.getItem('tiktokWidgetState')) {
+                document.querySelectorAll('.widget-card:not(#widget-controls):not(#widget-all-in-one)').forEach(w => w.style.display = 'none');
+                const allInOne = document.getElementById('widget-all-in-one');
+                if (allInOne) allInOne.style.display = 'flex';
+                saveWidgetState();
+            }
         });
 
         // Smart Orientation Snapping for Mobile Devices
@@ -1233,48 +1270,57 @@
 
         function renderList(elementId, users, countField) {
             const validUsers = users.filter(u => u[countField] > 0);
-            const container = document.getElementById(elementId);
+            const containers = [document.getElementById(elementId), document.getElementById("mobile-" + elementId)].filter(Boolean);
             
-            if (validUsers.length === 0) { container.innerHTML = ""; return; }
+            if (validUsers.length === 0) { 
+                containers.forEach(c => c.innerHTML = ""); 
+                return; 
+            }
 
-            let currentNodes = Array.from(container.children);
             let userIds = validUsers.map(u => u.uniqueId);
 
-            currentNodes.forEach(node => {
-                if (!userIds.includes(node.getAttribute('data-uid'))) node.remove();
+            containers.forEach(container => {
+                let currentNodes = Array.from(container.children);
+                currentNodes.forEach(node => {
+                    if (!userIds.includes(node.getAttribute('data-uid'))) node.remove();
+                });
+
+                validUsers.forEach((u, index) => {
+                    let node = container.querySelector(`[data-uid="${u.uniqueId}"]`);
+                    let countStyle = countField === "likeCount" ? "margin-left: 0;" : "margin-left: auto;";
+                    let extraHtml = countField === "likeCount" ? `<span style="color: #aaa; font-size: 14px; margin-left: auto; margin-right: 15px;">Actual: <b>${(u.actualTotalLikes > u.likeCount ? u.actualTotalLikes : u.likeCount).toLocaleString()}</b></span>` : "";
+
+                    const newHtml = `
+                        <div class="rank">${getRankBadge(index)}</div>
+                        <img class="avatar" src="${u.profilePictureUrl}" alt="User Avatar" onerror="this.src='https://www.tiktok.com/favicon.ico'">
+                        <div style="display: flex; flex-direction: column; overflow: hidden; flex-grow: 1;">
+                            <span class="name" style="max-width: 100%;">${u.nickname}</span>
+                            <span style="color: #888; font-size: 13px; font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@${u.uniqueId || 'unknown'}</span>
+                        </div>
+                        ${extraHtml}
+                        <div class="count" style="${countStyle}">${u[countField].toLocaleString()}</div>
+                    `;
+
+                    if (!node) {
+                        node = document.createElement('div');
+                        node.className = 'item update-flash';
+                        node.setAttribute('data-uid', u.uniqueId);
+                        node.innerHTML = newHtml;
+                        container.appendChild(node);
+                        setTimeout(() => node.classList.remove("update-flash"), 1000);
+                    } else {
+                        if (node.innerHTML !== newHtml) {
+                            node.innerHTML = newHtml;
+                            node.classList.remove("update-flash");
+                            void node.offsetWidth; // Trigger reflow
+                            node.classList.add("update-flash");
+                            setTimeout(() => node.classList.remove("update-flash"), 1000);
+                        }
+                    }
+
+                    if (container.children[index] !== node) container.insertBefore(node, container.children[index]);
+                });
             });
-
-            validUsers.forEach((u, index) => {
-                let node = container.querySelector(`[data-uid="${u.uniqueId}"]`);
-                let countStyle = countField === "likeCount" ? "margin-left: 0;" : "margin-left: auto;";
-                let extraHtml = countField === "likeCount" ? `<span style="color: #aaa; font-size: 14px; margin-left: auto; margin-right: 15px;">Actual: <b>${(u.actualTotalLikes > u.likeCount ? u.actualTotalLikes : u.likeCount).toLocaleString()}</b></span>` : "";
-
-                if (!node) {
-                    node = document.createElement('div');
-                    node.className = 'item';
-                    node.setAttribute('data-uid', u.uniqueId);
-                    container.appendChild(node);
-                }
-
-                const newHtml = `
-                    <div class="rank">${getRankBadge(index)}</div>
-                    <img class="avatar" src="${u.profilePictureUrl}" alt="User Avatar" onerror="this.src='https://www.tiktok.com/favicon.ico'">
-                    <div style="display: flex; flex-direction: column; overflow: hidden; flex-grow: 1;">
-                        <span class="name" style="max-width: 100%;">${u.nickname}</span>
-                        <span style="color: #888; font-size: 13px; font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@${u.uniqueId || 'unknown'}</span>
-                    </div>
-                    ${extraHtml}
-                    <div class="count" style="${countStyle}">${u[countField].toLocaleString()}</div>
-                `;
-
-                if (node.innerHTML !== newHtml) node.innerHTML = newHtml;
-                if (container.children[index] !== node) container.insertBefore(node, container.children[index]);
-            });
-            
-            const mobileContainer = document.getElementById("mobile-" + elementId);
-            if (mobileContainer) {
-                mobileContainer.innerHTML = container.innerHTML;
-            }
         }
 
         function startStream() {
@@ -1312,12 +1358,7 @@
                 document.getElementById("totalCommentsBadge").innerText = "0";
                 
                 sessionStorage.setItem("tiktokLiveActiveUser", username);
-                
-                const btn = document.getElementById("connectBtn");
-                btn.innerText = "وەستاندنی ستریم (Stop)";
-                btn.style.background = "#ff4c4c";
-                btn.onclick = stopStream;
-
+                saveSettingsToServer(); // Sync cross-device state to cloud
                 socket.emit("startStream", username);
             } else {
                 alert("⚠️ تکایە سەرەتا ناوی بەکارهێنەر بنووسە!");

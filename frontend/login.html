@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>چوونە ژوورەوە - داشبۆردی تیکتۆک</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        
         body { 
             background: radial-gradient(circle at top right, #1a0b12, #0B0F19);
             color: #F3F4F6; 
@@ -13,11 +17,26 @@
             flex-direction: column; 
             justify-content: center; 
             align-items: center; 
-            height: 100vh; 
+            min-height: 100vh; 
             margin: 0; 
             padding: 20px; 
-            box-sizing: border-box;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 15px; }
+            .login-box { padding: 30px 20px !important; border-radius: 15px !important; }
+            h1 { font-size: 22px !important; }
+            .tabs { margin-bottom: 20px !important; }
+            .tab { font-size: 14px !important; }
+            input { padding: 12px !important; font-size: 15px !important; margin-bottom: 12px !important; }
+            button { padding: 12px !important; font-size: 16px !important; }
+        }
+
+        @media (max-width: 400px) {
+            body { padding: 10px; }
+            .login-box { padding: 25px; }
         }
         
         .login-box { 
