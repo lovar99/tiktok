@@ -1155,12 +1155,17 @@
         }
 
         function startStream() {
+            if (!socket.connected) {
+                alert("🔴 پەیوەندی بە سێرڤەرەوە پچڕاوە! تکایە چاوەڕێ بکە تا سێرڤەرەکە دادەگیرسێتەوە.");
+                return;
+            }
+
             const username = document.getElementById("usernameInput").value.trim();
             if(username) {
                 saveToHistory(username);
                 
                 document.getElementById("statusMessage").style.color = "#aaa";
-                document.getElementById("statusMessage").innerText = "⏳ Connecting...";
+                document.getElementById("statusMessage").innerText = "⏳ لە هەوڵی پەیوەندیکردندایە... (Connecting)";
                 
                 document.getElementById("commentsList").innerHTML = "";
                 document.getElementById("likesList").innerHTML = "";
@@ -1177,11 +1182,12 @@
 
                 socket.emit("startStream", username);
             } else {
-                alert("Please enter a username first!");
+                alert("⚠️ تکایە سەرەتا ناوی بەکارهێنەر بنووسە!");
             }
         }
 
         function stopStream() {
+            if (!socket.connected) return;
             // 1. Cleanly tell the backend to drop the TikTok stream (without breaking the socket)
             socket.emit("stopStream");
             
