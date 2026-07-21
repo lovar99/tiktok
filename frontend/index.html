@@ -20,7 +20,7 @@
         
         /* Side Menu Swiper */
         .glass-panel { background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(15px); border-left: 1px solid rgba(255,255,255,0.1); }
-        #sideMenu { position: fixed; right: -280px; top: 0; width: 280px; height: 100vh; z-index: 1000; transition: right 0.4s cubic-bezier(0.25, 1, 0.5, 1); padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; box-shadow: -5px 0 25px rgba(0,0,0,0.7); }
+        #sideMenu { position: fixed; right: -280px; top: 0; width: 280px; height: 100vh; z-index: 4000 !important; transition: right 0.4s cubic-bezier(0.25, 1, 0.5, 1); padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; box-shadow: -5px 0 25px rgba(0,0,0,0.7); }
         #sideMenu.open { right: 0; }
         .menu-toggle { position: absolute; left: -50px; top: 50%; transform: translateY(-50%); width: 50px; height: 60px; background: #fe2c55; border-radius: 12px 0 0 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 28px; box-shadow: -2px 2px 8px rgba(0,0,0,0.5); color: white; transition: 0.2s; }
         .menu-toggle:hover { width: 60px; left: -60px; }
@@ -28,7 +28,7 @@
         .menu-btn:hover { background: #fe2c55; border-color: #fe2c55; }
 
         /* Premium Draggable Widgets */
-        .widget-card { position: absolute; display: none; flex-direction: column; background: rgba(18, 20, 28, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08); min-width: 250px; min-height: 200px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); z-index: 100; transition: box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease; }
+        .widget-card { position: absolute; display: flex; flex-direction: column; background: rgba(18, 20, 28, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08); min-width: 250px; min-height: 200px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); z-index: 100; transition: box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease; }
         .widget-card.is-dragging { transform: scale(1.02); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 59, 92, 0.5); opacity: 0.95; z-index: 9999 !important; }
         .widget-header { background: rgba(255, 255, 255, 0.03); padding: 12px 16px; cursor: grab; font-weight: 600; color: #F3F4F6; display: flex; justify-content: space-between; align-items: center; user-select: none; touch-action: none; border-radius: 16px 16px 0 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 15px; }
         .widget-header:active { cursor: grabbing; }
@@ -183,8 +183,10 @@
             .comment-text span:last-child { font-size: 12px; margin-top: 2px; }
         }
 
-        /* Dashboard Grid CSS Added Below */
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-rows: 350px; grid-auto-flow: dense; gap: 15px; width: 95%; max-width: 1600px; margin: 100px auto 20px; position: relative; z-index: 50; }
+        /* Dashboard Layout */
+        #widget-controls { position: fixed !important; top: 20px !important; right: 20px !important; z-index: 3000 !important; height: auto !important; min-height: unset !important; }
+        .dashboard-grid { width: 100vw; height: 100vh; position: relative; z-index: 50; pointer-events: none; }
+        .dashboard-grid > * { pointer-events: auto; }
         
         /* Smooth Comments Animations */
         .comment-smooth-enter { opacity: 0; transform: translateY(-30px) scale(0.95); max-height: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0; overflow: hidden; transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
@@ -376,7 +378,7 @@
             window.location.href = "login.html";
         }
         
-        const socket = io("https://tiktok-live-tracker-idnb.onrender.com");
+        const socket = io("https://tiktok-live-tracker-idnb.onrender.com", { transports: ['websocket'] });
 
         function saveDashboardHTML() {
             const now = new Date();
@@ -430,7 +432,7 @@
             URL.revokeObjectURL(url);
         }
 
-        let searchHistory = [];
+        let searchHistory = JSON.parse(localStorage.getItem('tiktokSearchHistory') || '[]');
 
         function getUsernameFromToken() {
             const token = localStorage.getItem("tiktokAdminToken");
@@ -465,12 +467,14 @@
             searchHistory = searchHistory.filter(u => u !== username);
             searchHistory.unshift(username); 
             renderHistory();
+            localStorage.setItem('tiktokSearchHistory', JSON.stringify(searchHistory));
             saveSettingsToServer();
         }
 
         function deleteHistory(username) {
             searchHistory = searchHistory.filter(u => u !== username);
             renderHistory();
+            localStorage.setItem('tiktokSearchHistory', JSON.stringify(searchHistory));
             saveSettingsToServer();
         }
 
@@ -626,7 +630,7 @@
             }
         }
 
-        let isLiveMode = false;
+        let isLiveMode = true;
 
         function toggleLiveMode() {
             isLiveMode = !isLiveMode;
@@ -644,12 +648,6 @@
             }
         }
 
-        function showStandardTab(id, btnElement) {
-            document.querySelectorAll('.widget-card:not(#widget-controls)').forEach(c => {
-                c.classList.remove('active-tab');
-                c.style.setProperty('display', 'none', 'important');
-            });
-            document.querySelectorAll('
 
         function zoomWidget(id, dir) {
             const w = document.getElementById(id);
@@ -676,19 +674,83 @@
         }
 
         function autoArrangeWidgets() {
-            document.querySelectorAll('.widget-card:not(#widget-controls)').forEach(w => {
-                w.style.position = 'relative';
-                w.style.top = 'auto';
-                w.style.left = 'auto';
-                w.style.width = '100%';
-                w.style.height = '100%';
-                w.classList.remove('is-dragging');
-            });
+            const widgets = Array.from(document.querySelectorAll('.widget-card:not(#widget-controls)')).filter(w => w.style.display !== 'none' && !w.classList.contains('minimized'));
+            if (widgets.length === 0) return;
+
+            const screenW = window.innerWidth;
+            const screenH = window.innerHeight;
+            const gap = 15;
+            
+            const controls = document.getElementById('widget-controls');
+            const isControlsVisible = controls && controls.style.display !== 'none';
+            const controlsRect = isControlsVisible ? controls.getBoundingClientRect() : { left: screenW + gap, bottom: gap, width: 0 };
+            
+            const sharesWidget = document.getElementById('widget-shares');
+            const hasShares = widgets.includes(sharesWidget);
+            
+            if (screenW > 900) {
+                if (hasShares) {
+                    const sharesTop = isControlsVisible ? controlsRect.bottom + gap : 20;
+                    sharesWidget.style.position = 'absolute';
+                    sharesWidget.style.top = `${sharesTop}px`;
+                    const sharesW = isControlsVisible ? controlsRect.width : 350;
+                    const sharesL = isControlsVisible ? controlsRect.left : (screenW - sharesW - gap);
+                    sharesWidget.style.left = `${sharesL}px`;
+                    sharesWidget.style.width = `${sharesW}px`;
+                    sharesWidget.style.height = `${screenH - sharesTop - 20}px`;
+                }
+                
+                const leftWidgets = widgets.filter(w => w !== sharesWidget);
+                if (leftWidgets.length > 0) {
+                    const rightBoundary = isControlsVisible ? controlsRect.left : (hasShares ? (screenW - 350 - gap) : screenW);
+                    const availableLeft = rightBoundary - gap - 20;
+                    
+                    const cols = leftWidgets.length;
+                    const wW = (availableLeft - (gap * (cols - 1))) / cols;
+                    const wH = screenH - 40;
+                    
+                    const order = ['widget-search', 'widget-gifts', 'widget-likes', 'widget-comments'];
+                    leftWidgets.sort((a, b) => {
+                        let indexA = order.indexOf(a.id);
+                        let indexB = order.indexOf(b.id);
+                        if (indexA === -1) indexA = 99;
+                        if (indexB === -1) indexB = 99;
+                        return indexA - indexB;
+                    });
+                    
+                    leftWidgets.forEach((w, i) => {
+                        w.style.position = 'absolute';
+                        w.style.width = `${wW}px`;
+                        w.style.height = `${wH}px`;
+                        w.style.left = `${20 + (i * (wW + gap))}px`;
+                        w.style.top = `20px`;
+                    });
+                }
+            } else {
+                let startTop = isControlsVisible ? controlsRect.bottom + gap : 20;
+                let availableW = screenW - 40;
+                
+                let cols = widgets.length >= 4 ? 2 : 1;
+                let rows = Math.ceil(widgets.length / cols);
+                
+                const wW = (availableW - (gap * (cols - 1))) / cols;
+                const wH = (screenH - startTop - 20 - (gap * (rows - 1))) / rows;
+                
+                widgets.forEach((w, i) => {
+                    const col = i % cols;
+                    const row = Math.floor(i / cols);
+                    w.style.position = 'absolute';
+                    w.style.width = `${wW}px`;
+                    w.style.height = `${wH}px`;
+                    w.style.left = `${20 + (col * (wW + gap))}px`;
+                    w.style.top = `${startTop + (row * (wH + gap))}px`;
+                });
+            }
             saveWidgetState();
         }
 
         // 🖱️ Draggable & Resizable Widget Logic
-        let widgetState = {};
+        let widgetState = JSON.parse(localStorage.getItem('tiktokWidgetState') || '{}');
 
         function saveWidgetState() {
             document.querySelectorAll('.widget-card').forEach(widget => {
@@ -703,7 +765,7 @@
                     minimized: widget.classList.contains("minimized")
                 };
             });
-            saveSettingsToServer();
+            localStorage.setItem('tiktokWidgetState', JSON.stringify(widgetState));
         }
 
         function toggleWidget(id) {
@@ -737,7 +799,7 @@
                 if(widgetState[widget.id]) {
                     // Prevent inline display flex from breaking standard tabs!
                     if(isLiveMode) {
-                        widget.style.display = widgetState[widget.id].display || 'none';
+                        widget.style.display = widgetState[widget.id].display === 'none' ? 'none' : 'flex';
                     } else {
                         widget.style.display = ''; 
                     }
@@ -763,60 +825,64 @@
                 let startX, startY, startLeft, startTop, startWidth, startHeight;
 
                 // Dragging Logic Fixed
-                header.addEventListener('pointerdown', (e) => {
-                    if(e.target.classList.contains('widget-close') || e.target.classList.contains('widget-btn')) return;
-                    isDragging = true;
-                    widget.classList.add('is-dragging');
-                    widget.style.position = 'fixed'; // Float out of CSS grid
-                    const rect = widget.getBoundingClientRect();
-                    startX = e.clientX; startY = e.clientY;
-                    startLeft = rect.left;
-                    startTop = rect.top;
-                    widget.style.right = 'auto'; // Fixes horizontal drag locking!
-                    
-                    document.querySelectorAll('.widget-card').forEach(w => w.style.zIndex = 100);
-                    widget.style.zIndex = 1000;
-                    header.setPointerCapture(e.pointerId);
-                });
+                if (header) {
+                    header.addEventListener('pointerdown', (e) => {
+                        if(e.target.classList.contains('widget-close') || e.target.classList.contains('widget-btn')) return;
+                        isDragging = true;
+                        widget.classList.add('is-dragging');
+                        widget.style.position = 'fixed'; // Float out of CSS grid
+                        const rect = widget.getBoundingClientRect();
+                        startX = e.clientX; startY = e.clientY;
+                        startLeft = rect.left;
+                        startTop = rect.top;
+                        widget.style.right = 'auto'; // Fixes horizontal drag locking!
+                        
+                        document.querySelectorAll('.widget-card').forEach(w => w.style.zIndex = 100);
+                        widget.style.zIndex = 1000;
+                        header.setPointerCapture(e.pointerId);
+                    });
 
-                header.addEventListener('pointermove', (e) => {
-                    if(!isDragging) return;
-                    widget.style.left = (startLeft + e.clientX - startX) + 'px';
-                    widget.style.top = (startTop + e.clientY - startY) + 'px';
-                });
+                    header.addEventListener('pointermove', (e) => {
+                        if(!isDragging) return;
+                        widget.style.left = (startLeft + e.clientX - startX) + 'px';
+                        widget.style.top = (startTop + e.clientY - startY) + 'px';
+                    });
 
-                header.addEventListener('pointerup', (e) => {
-                    isDragging = false;
-                    widget.classList.remove('is-dragging'); // Removes HUD physics
-                    header.releasePointerCapture(e.pointerId);
-                    saveWidgetState();
-                });
+                    header.addEventListener('pointerup', (e) => {
+                        isDragging = false;
+                        widget.classList.remove('is-dragging'); // Removes HUD physics
+                        header.releasePointerCapture(e.pointerId);
+                        saveWidgetState();
+                    });
+                }
 
                 // Resizing Logic (Calculated for Right-To-Left UI)
-                resizeHandle.addEventListener('pointerdown', (e) => {
-                    isResizing = true;
-                    startX = e.clientX; startY = e.clientY;
-                    startWidth = parseInt(window.getComputedStyle(widget).width) || 350;
-                    startHeight = parseInt(window.getComputedStyle(widget).height) || 350;
-                    
-                    document.querySelectorAll('.widget-card').forEach(w => w.style.zIndex = 100);
-                    widget.style.zIndex = 1000;
-                    resizeHandle.setPointerCapture(e.pointerId);
-                    e.stopPropagation();
-                });
+                if (resizeHandle) {
+                    resizeHandle.addEventListener('pointerdown', (e) => {
+                        isResizing = true;
+                        startX = e.clientX; startY = e.clientY;
+                        startWidth = parseInt(window.getComputedStyle(widget).width) || 350;
+                        startHeight = parseInt(window.getComputedStyle(widget).height) || 350;
+                        
+                        document.querySelectorAll('.widget-card').forEach(w => w.style.zIndex = 100);
+                        widget.style.zIndex = 1000;
+                        resizeHandle.setPointerCapture(e.pointerId);
+                        e.stopPropagation();
+                    });
 
-                resizeHandle.addEventListener('pointermove', (e) => {
-                    if(!isResizing) return;
-                    // Lowered minimum width and height to easily fit mobile screens!
-                    widget.style.width = Math.max(120, startWidth + (startX - e.clientX)) + 'px';
-                    widget.style.height = Math.max(100, startHeight + (e.clientY - startY)) + 'px';
-                });
+                    resizeHandle.addEventListener('pointermove', (e) => {
+                        if(!isResizing) return;
+                        // Lowered minimum width and height to easily fit mobile screens!
+                        widget.style.width = Math.max(120, startWidth + (startX - e.clientX)) + 'px';
+                        widget.style.height = Math.max(100, startHeight + (e.clientY - startY)) + 'px';
+                    });
 
-                resizeHandle.addEventListener('pointerup', (e) => {
-                    isResizing = false;
-                    resizeHandle.releasePointerCapture(e.pointerId);
-                    saveWidgetState();
-                });
+                    resizeHandle.addEventListener('pointerup', (e) => {
+                        isResizing = false;
+                        resizeHandle.releasePointerCapture(e.pointerId);
+                        saveWidgetState();
+                    });
+                }
             });
         }
         
@@ -851,11 +917,15 @@
         });
 
         // Register Service Worker for PWA
-        if ('serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').then(reg => {
-                    console.log('✅ PWA Service Worker Registered!');
-                }).catch(err => console.log('❌ SW Registration failed:', err));
+                try {
+                    navigator.serviceWorker.register('sw.js').then(reg => {
+                        console.log('✅ PWA Service Worker Registered!');
+                    }).catch(err => {
+                        // Fail silently during local dev
+                    });
+                } catch(e) {}
             });
         }
 
@@ -959,13 +1029,13 @@
             div.className = "comment-item comment-smooth-enter";
             div.innerHTML = `
                 <img class="avatar" src="${c.profilePictureUrl}" alt="User Avatar" onerror="this.src='https://www.tiktok.com/favicon.ico'" style="cursor: pointer;" onclick="showUserHistory('${c.uniqueId}')">
-                <div class="comment-text">
-                    <span class="comment-name" style="cursor: pointer;" onclick="showUserHistory('${c.uniqueId}')">
-                        <span>${c.nickname}</span> 
-                        <span style="color: #888; font-size: 13px; font-weight: normal; margin-left: 5px;">@${c.uniqueId || 'unknown'}</span>
-                        <span style="color: #555; font-size: 12px; font-weight: normal; margin-left: auto; font-family: monospace;">${c.timestamp}</span>
-                    </span>
-                    <span style="color: #ddd; margin-top: 5px; word-break: break-word;" dir="auto">${c.comment}</span>
+                <div class="comment-text" style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
+                    <div style="display: flex; align-items: baseline; gap: 5px; cursor: pointer;" onclick="showUserHistory('${c.uniqueId}')">
+                        <span style="font-weight: bold; color: #fe2c55; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%;">${c.nickname || 'User'}</span> 
+                        <span style="color: #888; font-size: 12px; font-weight: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 35%;">@${c.uniqueId || 'unknown'}</span>
+                        <span style="color: #555; font-size: 11px; font-weight: normal; margin-left: auto; white-space: nowrap;">${(c.timestamp && c.timestamp !== 'undefined') ? c.timestamp : ''}</span>
+                    </div>
+                    <div style="color: #ddd; font-size: 14px; word-break: break-word; line-height: 1.4;" dir="auto">${c.comment}</div>
                 </div>
             `;
             container.prepend(div);
@@ -1024,13 +1094,13 @@
                 return `
                 <div class="comment-item">
                     <img class="avatar" src="${c.profilePictureUrl}" alt="User Avatar" onerror="this.src='https://www.tiktok.com/favicon.ico'" style="cursor: pointer;" onclick="showUserHistory('${c.uniqueId}')">
-                    <div class="comment-text">
-                        <span class="comment-name" style="cursor: pointer;" onclick="showUserHistory('${c.uniqueId}')">
-                            <span>${c.nickname}</span> 
-                            <span style="color: #888; font-size: 13px; font-weight: normal; margin-left: 5px;">@${c.uniqueId || 'unknown'}</span>
-                            <span style="color: #555; font-size: 12px; font-weight: normal; margin-left: auto; font-family: monospace;">${c.timestamp}</span>
-                        </span>
-                        <span style="color: #ddd; margin-top: 5px; word-break: break-word;" dir="auto">${c.comment}</span>
+                    <div class="comment-text" style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
+                        <div style="display: flex; align-items: baseline; gap: 5px; cursor: pointer;" onclick="showUserHistory('${c.uniqueId}')">
+                            <span style="font-weight: bold; color: #fe2c55; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%;">${c.nickname || 'User'}</span> 
+                            <span style="color: #888; font-size: 12px; font-weight: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 35%;">@${c.uniqueId || 'unknown'}</span>
+                            <span style="color: #555; font-size: 11px; font-weight: normal; margin-left: auto; white-space: nowrap;">${(c.timestamp && c.timestamp !== 'undefined') ? c.timestamp : ''}</span>
+                        </div>
+                        <div style="color: #ddd; font-size: 14px; word-break: break-word; line-height: 1.4;" dir="auto">${c.comment}</div>
                     </div>
                 </div>
                 `;
