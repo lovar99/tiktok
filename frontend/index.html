@@ -39,9 +39,9 @@
         .widget-content::-webkit-scrollbar-track { background: transparent; }
         .widget-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
         .widget-content::-webkit-scrollbar-thumb:hover { background: #FF3B5C; }
-        .resize-handle { position: absolute; bottom: 0; left: 0; width: 24px; height: 24px; cursor: nwse-resize; z-index: 100; background: transparent; }
-        .resize-handle::after { content: ''; position: absolute; bottom: 6px; left: 6px; width: 10px; height: 10px; border-bottom: 2px solid rgba(255, 255, 255, 0.3); border-left: 2px solid rgba(255, 255, 255, 0.3); border-bottom-left-radius: 3px; transition: border-color 0.2s; }
-        .resize-handle:hover::after { border-color: #FF3B5C; }
+        .resize-handle { position: absolute; bottom: 0; left: 0; width: 36px; height: 36px; cursor: nwse-resize; z-index: 100; background: transparent; touch-action: none; }
+        .resize-handle::after { content: ''; position: absolute; bottom: 8px; left: 8px; width: 14px; height: 14px; border-bottom: 3px solid rgba(255, 255, 255, 0.4); border-left: 3px solid rgba(255, 255, 255, 0.4); border-bottom-left-radius: 4px; transition: border-color 0.2s; }
+        .resize-handle:hover::after, .resize-handle:active::after { border-color: #FF3B5C; }
         .widget-close { width: 28px; height: 28px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #9CA3AF; transition: all 0.2s ease; cursor: pointer; }
         .widget-close:hover { background: rgba(255, 59, 92, 0.2); color: #FF3B5C; }
         
@@ -486,7 +486,13 @@
         renderHistory();
 
         socket.on("connect", () => {
-            document.getElementById("statusMessage").innerText = "🟢 ئامادەیە بۆ دەستپێکردن";
+            const savedUser = sessionStorage.getItem("tiktokLiveActiveUser");
+            if (savedUser) {
+                document.getElementById("statusMessage").innerText = `✅ بەردەوامە لە پەیوەندیکردن بە: @${savedUser}`;
+                socket.emit("setUniqueId", savedUser); // Auto-reconnect!
+            } else {
+                document.getElementById("statusMessage").innerText = "🟢 ئامادەیە بۆ دەستپێکردن";
+            }
             document.getElementById("statusMessage").style.color = "#4cff4c";
             socket.emit("requestInitialState", getUsernameFromToken());
         });
