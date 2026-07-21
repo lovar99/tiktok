@@ -129,6 +129,7 @@ io.on("connection", (socket) => {
 
     function emitUpdate(stream, target) {
         if (!stream) return;
+        stream.lastActivity = Date.now();
         const activeUsersCount = Object.keys(stream.stats).length;
         const sortedUsers = Object.values(stream.stats)
             .sort((a, b) => (b.giftCount * 1000 + b.commentCount * 10 + b.actualTotalLikes) - (a.giftCount * 1000 + a.commentCount * 10 + a.actualTotalLikes))
@@ -294,6 +295,7 @@ io.on("connection", (socket) => {
                 try { stream.connection.disconnect(); } catch(e) {}
             }
             if (stream.timeout) clearTimeout(stream.timeout);
+            if (stream.watchdog) clearInterval(stream.watchdog);
             activeStreams.delete(username);
         }
         socket.leave(username);
@@ -345,19 +347,33 @@ io.on("connection", (socket) => {
             pollKeywords: [],
             pollCounts: {},
             timeout: null,
-            connectedSockets: new Set([socket.id])
+            connectedSockets: new Set([socket.id]),
+            lastActivity: Date.now()
         };
         activeStreams.set(username, stream);
+
+        // Watchdog to prevent silent freezing
+        stream.watchdog = setInterval(() => {
+            if (Date.now() - stream.lastActivity > 45000) {
+                console.log(`Watchdog timeout for @${username}. Disconnecting.`);
+                io.to(username).emit("streamStatus", { status: "error", message: `⚠️ ستریمەکە وەستا بەهۆی نەبوونی داتا! تکایە دووبارە دەستپێبکە.` });
+                saveStreamToD1(username, stream.stats);
+                try { stream.connection.disconnect(); } catch(e) {}
+                clearInterval(stream.watchdog);
+                activeStreams.delete(username);
+            }
+        }, 10000);
 
         stream.connection.connect().then(() => {
             io.to(username).emit("streamStatus", { status: "success", message: `✅ سەرکەوتوو بوو! پەیوەست بوو بە @${username}` });
         }).catch(err => {
             io.to(username).emit("streamStatus", { status: "error", message: `❌ نەتوانرا پەیوەندی بکرێت بە @${username}` });
+            if (stream.watchdog) clearInterval(stream.watchdog);
             activeStreams.delete(username);
         });
 
-        stream.connection.on('roomUser', data => { if (data.viewerCount !== undefined) io.to(username).emit("viewerUpdate", { count: data.viewerCount }); });
-        stream.connection.on('room', data => { if (data.viewerCount !== undefined) io.to(username).emit("viewerUpdate", { count: data.viewerCount }); });
+        stream.connection.on('roomUser', data => { stream.lastActivity = Date.now(); if (data.viewerCount !== undefined) io.to(username).emit("viewerUpdate", { count: data.viewerCount }); });
+        stream.connection.on('room', data => { stream.lastActivity = Date.now(); if (data.viewerCount !== undefined) io.to(username).emit("viewerUpdate", { count: data.viewerCount }); });
         
         stream.connection.on('member', data => { getUser(stream, data); emitUpdate(stream, username); });
         
@@ -408,6 +424,22 @@ io.on("connection", (socket) => {
         stream.connection.on('streamEnd', () => {
             io.to(username).emit("streamStatus", { status: "error", message: `🛑 ستریمەکە کۆتایی هات!` });
             saveStreamToD1(username, stream.stats); // Auto-save!
+            if (stream.watchdog) clearInterval(stream.watchdog);
+            activeStreams.delete(username);
+        });
+
+        stream.connection.on('disconnected', () => {
+            io.to(username).emit("streamStatus", { status: "error", message: `⚠️ پەیوەندی بە ستریمەکەوە پچڕا (Disconnected)` });
+            saveStreamToD1(username, stream.stats); // Auto-save!
+            if (stream.watchdog) clearInterval(stream.watchdog);
+            activeStreams.delete(username);
+        });
+
+        stream.connection.on('error', err => {
+            console.error('TikTok Live Error for', username, ':', err);
+            io.to(username).emit("streamStatus", { status: "error", message: `❌ هەڵەیەک ڕوویدا لە پەیوەندیکردن!` });
+            saveStreamToD1(username, stream.stats); // Auto-save!
+            if (stream.watchdog) clearInterval(stream.watchdog);
             activeStreams.delete(username);
         });
     });
