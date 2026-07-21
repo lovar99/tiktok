@@ -183,68 +183,16 @@
             .comment-text span:last-child { font-size: 12px; margin-top: 2px; }
         }
 
-        /* Standard Mode vs Live Mode Toggle System */
-        body:not(.live-mode) .fab-menu,
-        body:not(.live-mode) #sideMenu { display: none !important; }
+        /* Dashboard Grid CSS Added Below */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-rows: 350px; grid-auto-flow: dense; gap: 15px; width: 95%; max-width: 1600px; margin: 100px auto 20px; position: relative; z-index: 50; }
         
-        /* Standard Mode: Compact Centered Box */
-        body:not(.live-mode) #widget-controls { 
-            display: flex !important; 
-            position: relative !important; top: auto !important; left: auto !important; right: auto !important;
-            width: 100% !important; max-width: 400px !important; margin: 20px auto !important; 
-            max-height: none !important;
-        }
-        body:not(.live-mode) #widget-controls .widget-header { display: none !important; }
-        body:not(.live-mode) #widget-controls .resize-handle { display: none !important; }
-        
-        /* Live Mode: Top-Right Floating HUD */
-        body.live-mode #widget-controls {
-            position: absolute !important; width: 380px !important; top: 20px !important; left: 20px !important;
-        }
+        /* Smooth Comments Animations */
+        .comment-smooth-enter { opacity: 0; transform: translateY(-30px) scale(0.95); max-height: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0; overflow: hidden; transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        .comment-smooth-enter-active { opacity: 1; transform: translateY(0) scale(1); max-height: 200px; margin-bottom: 10px; padding-top: 15px; padding-bottom: 15px; }
 
-        body:not(.live-mode) .widget-card:not(#widget-controls) { 
-            position: relative !important; top: auto !important; left: auto !important; right: auto !important;
-            width: 95% !important; max-width: 1400px !important; margin: 0 auto 20px auto !important; 
-            height: auto !important; display: none !important; 
-        }
-        body:not(.live-mode) .widget-card.active-tab { display: flex !important; }
-        body:not(.live-mode) .widget-card:not(#widget-controls) .widget-header { display: none !important; }
-        body:not(.live-mode) .widget-card:not(#widget-controls) .resize-handle { display: none !important; }
-
-        .standard-tabs { display: flex; gap: 8px; margin-top: 20px; margin-bottom: 15px; width: 100%; justify-content: center; flex-wrap: wrap; z-index: 10; position: relative; }
-        .standard-tabs .tab-btn { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 8px 16px; font-size: 14px; border-radius: 20px; backdrop-filter: blur(10px); }
-        .standard-tabs .tab-btn.active { background: #FF3B5C; border-color: #FF3B5C; box-shadow: 0 4px 10px rgba(255,59,92,0.4); }
-        body.live-mode .standard-tabs { display: none !important; }
-
-        @keyframes animatedBorder {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        
-        .premium-controls {
-            background: linear-gradient(135deg, rgba(18,20,28,0.9), rgba(18,20,28,0.95)) padding-box,
-                        linear-gradient(90deg, #FF3B5C, #00F2FE, #FF3B5C) border-box;
-            border: 2px solid transparent;
-            background-size: 200% 200%;
-            animation: animatedBorder 4s ease infinite;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-        }
-        
-        /* Z-index safety and zoom buttons */
-        #widget-controls { z-index: 1500 !important; }
-        #sideMenu { z-index: 2100 !important; }
-        .widget-btn { cursor: pointer; color: #aaa; font-size: 16px; padding: 0 5px; font-weight: bold; background: #2a2a2a; border-radius: 4px; display: inline-block; width: 24px; text-align: center; }
-        .widget-btn:hover { color: white; background: #fe2c55; }
-        
-        @keyframes flash { 0% { opacity: 1; } 100% { opacity: 0.6; } }
-        .poll-item { background: #1e1e1e; padding: 6px 12px; border-radius: 8px; font-weight: bold; border: 1px solid #fe2c55; display: flex; align-items: center; }
-        .poll-item span { color: #fe2c55; margin-left: 10px; font-size: 16px; }
-        
-        .fab-menu { position: fixed; bottom: 20px; left: 20px; background: #fe2c55; color: white; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 2000; cursor: pointer; border: 2px solid #fff; transition: 0.2s; user-select: none; }
-        .fab-menu:active { transform: scale(0.9); }
-
+        .widget-card.minimized { height: 50px !important; min-height: 50px !important; overflow: hidden; }
+        .widget-card.minimized .widget-content { display: none; }
+        .widget-card.minimized .resize-handle { display: none; }
         /* 💻 PC/Desktop ONLY Layout Fixes (Prevents massive stretching) */
         @media (min-width: 801px) {
             .controls-row input, .controls-row button {
@@ -254,9 +202,9 @@
             }
             .badge {
                 flex: 0 1 auto !important;
-                min-width: 220px;
-                padding: 12px 20px !important;
-                font-size: 16px !important;
+                min-width: auto;
+                padding: 12px 10px !important;
+                font-size: 14px !important;
             }
             /* Keep HUD completely compact on PC */
             #widget-controls { width: 380px !important; }
@@ -272,7 +220,7 @@
 
     <!-- Main Controls Widget (Ultra-Compact HUD) -->
     <div id="widget-controls" class="widget-card premium-controls" style="display: flex; padding: 5px; z-index: 2000;">
-        <div class="widget-header" style="border-bottom: none; padding: 5px 10px; cursor: grab;">
+        <div class="widget-header" style="border-bottom: none; padding: 5px 10px;">
             <span id="secretAdminTrigger" style="user-select: none; font-size: 14px;">🏆 کۆنتڕۆڵی لایڤ</span>
             <span class="widget-close" onclick="toggleWidget('widget-controls')" style="width: 24px; height: 24px; font-size: 12px;">✖</span>
         </div>
@@ -320,22 +268,17 @@
         <button class="menu-btn" style="background: #2196F3;" onclick="viewHistory()">📜 مێژووی دانیشتنەکان</button>
     </div>
 
-    <!-- Standard Tabs for Default Static Mode -->
-    <div class="tabs standard-tabs">
-        <button class="tab-btn active" onclick="showStandardTab('widget-comments', this)">💬 زۆرترین کۆمێنتەکان</button>
-        <button class="tab-btn" onclick="showStandardTab('widget-likes', this)">❤️ زۆرترین لایکەکان</button>
-        <button class="tab-btn" onclick="showStandardTab('widget-gifts', this)">🎁 زۆرترین دیارییەکان</button>
-        <button class="tab-btn" onclick="showStandardTab('widget-shares', this)">↗️ زۆرترین شەیرەکان</button>
-        <button class="tab-btn" onclick="showStandardTab('widget-search', this)">🔍 کۆمێنتە ڕاستەوخۆکان</button>
-    </div>
+    
 
     <!-- Draggable Floating Widgets -->
-    <div id="widget-comments" class="widget-card active-tab" style="top: 250px; left: 50px; width: 350px; height: 350px;">
+    <div id="dashboard-grid" class="dashboard-grid">
+    <div id="widget-comments" class="widget-card" style="background: linear-gradient(135deg, #0A192F, #050b14);">
         <div class="widget-header">
             <span>💬 زۆرترین کۆمێنتەکان</span>
             <div style="display:flex; gap:8px;">
                 <span class="widget-btn" onclick="zoomWidget('widget-comments', -1)">-</span>
                 <span class="widget-btn" onclick="zoomWidget('widget-comments', 1)">+</span>
+                <span class="widget-close" onclick="minimizeWidget('widget-comments')">_</span>
                 <span class="widget-close" onclick="toggleWidget('widget-comments')">✖</span>
             </div>
         </div>
@@ -345,12 +288,13 @@
         <div class="resize-handle"></div>
     </div>
 
-    <div id="widget-likes" class="widget-card" style="top: 250px; left: 450px; width: 350px; height: 350px;">
+    <div id="widget-likes" class="widget-card" style="background: linear-gradient(135deg, #2D1B4E, #140b2e);">
         <div class="widget-header">
             <span>❤️ زۆرترین لایکەکان</span>
             <div style="display:flex; gap:8px;">
                 <span class="widget-btn" onclick="zoomWidget('widget-likes', -1)">-</span>
                 <span class="widget-btn" onclick="zoomWidget('widget-likes', 1)">+</span>
+                <span class="widget-close" onclick="minimizeWidget('widget-likes')">_</span>
                 <span class="widget-close" onclick="toggleWidget('widget-likes')">✖</span>
             </div>
         </div>
@@ -360,12 +304,13 @@
         <div class="resize-handle"></div>
     </div>
 
-    <div id="widget-gifts" class="widget-card" style="top: 650px; left: 50px; width: 350px; height: 350px;">
+    <div id="widget-gifts" class="widget-card" style="background: linear-gradient(135deg, #1A3622, #0d1a10);">
         <div class="widget-header">
             <span>🎁 زۆرترین دیارییەکان</span>
             <div style="display:flex; gap:8px;">
                 <span class="widget-btn" onclick="zoomWidget('widget-gifts', -1)">-</span>
                 <span class="widget-btn" onclick="zoomWidget('widget-gifts', 1)">+</span>
+                <span class="widget-close" onclick="minimizeWidget('widget-gifts')">_</span>
                 <span class="widget-close" onclick="toggleWidget('widget-gifts')">✖</span>
             </div>
         </div>
@@ -375,12 +320,13 @@
         <div class="resize-handle"></div>
     </div>
 
-    <div id="widget-shares" class="widget-card" style="top: 650px; left: 450px; width: 350px; height: 350px;">
+    <div id="widget-shares" class="widget-card" style="background: linear-gradient(135deg, #4A2511, #241107);">
         <div class="widget-header">
             <span>↗️ زۆرترین شەیرەکان</span>
             <div style="display:flex; gap:8px;">
                 <span class="widget-btn" onclick="zoomWidget('widget-shares', -1)">-</span>
                 <span class="widget-btn" onclick="zoomWidget('widget-shares', 1)">+</span>
+                <span class="widget-close" onclick="minimizeWidget('widget-shares')">_</span>
                 <span class="widget-close" onclick="toggleWidget('widget-shares')">✖</span>
             </div>
         </div>
@@ -390,12 +336,13 @@
         <div class="resize-handle"></div>
     </div>
 
-    <div id="widget-search" class="widget-card" style="top: 250px; left: 850px; width: 450px; height: 600px;">
+    <div id="widget-search" class="widget-card" style="background: linear-gradient(135deg, #4A1115, #240709);">
         <div class="widget-header">
             <span>🔍 کۆمێنتە ڕاستەوخۆکان</span>
             <div style="display:flex; gap:8px;">
                 <span class="widget-btn" onclick="zoomWidget('widget-search', -1)">-</span>
                 <span class="widget-btn" onclick="zoomWidget('widget-search', 1)">+</span>
+                <span class="widget-close" onclick="minimizeWidget('widget-search')">_</span>
                 <span class="widget-close" onclick="toggleWidget('widget-search')">✖</span>
             </div>
         </div>
@@ -407,9 +354,9 @@
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
                     <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: 600; color: white;">
-                        <input type="checkbox" id="smoothScrollToggle" onchange="toggleSmoothScroll()" style="width: 18px; height: 18px; accent-color: #FF3B5C;"> سکڕۆڵی هێواش
+                        <input type="checkbox" id="smoothScrollToggle" onchange="toggleSmoothScroll()" style="width: 18px; height: 18px; accent-color: #FF3B5C;" checked> سکڕۆڵی هێواش
                     </label>
-                    <div id="scrollSpeedContainer" style="display: none; align-items: center; gap: 8px; flex: 1;">
+                    <div id="scrollSpeedContainer" style="display: flex; align-items: center; gap: 8px; flex: 1;">
                         <span style="font-size: 16px;" title="خاو">🐢</span>
                         <input type="range" id="scrollSpeed" min="1" max="10" value="5" style="flex: 1; accent-color: #FF3B5C;" oninput="updateScrollSpeed()">
                         <span style="font-size: 16px;" title="خێرا">🐇</span>
@@ -420,13 +367,13 @@
         </div>
         <div class="resize-handle"></div>
     </div>
+</div><!-- End Dashboard Grid -->
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
         // Redirect to login page if no token is found
         if (!localStorage.getItem("tiktokAdminToken")) {
-            // window.location.href = "login.html"; // <-- COMMENTED OUT SO PREVIEW WORKS
-            console.log("Auth bypassed for editor preview.");
+            window.location.href = "login.html";
         }
         
         const socket = io("https://tiktok-live-tracker-idnb.onrender.com");
@@ -501,6 +448,7 @@
 
         function renderHistory() {
             const container = document.getElementById("historyContainer");
+            if (!container) return; // FIX: Prevent crash if element is removed from UI
             if (searchHistory.length === 0) {
                 container.innerHTML = "";
                 return;
@@ -701,15 +649,7 @@
                 c.classList.remove('active-tab');
                 c.style.setProperty('display', 'none', 'important');
             });
-            document.querySelectorAll('.standard-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
-            
-            const targetWidget = document.getElementById(id);
-            targetWidget.classList.add('active-tab');
-            targetWidget.style.setProperty('display', 'flex', 'important');
-            
-            btnElement.classList.add('active');
-            if(id === 'widget-search') renderComments();
-        }
+            document.querySelectorAll('
 
         function zoomWidget(id, dir) {
             const w = document.getElementById(id);
@@ -728,64 +668,22 @@
             saveWidgetState();
         }
 
+        function minimizeWidget(id) {
+            const w = document.getElementById(id);
+            w.classList.toggle('minimized');
+            saveWidgetState();
+            setTimeout(autoArrangeWidgets, 100); // Reflow grid
+        }
+
         function autoArrangeWidgets() {
-            const widgets = Array.from(document.querySelectorAll('.widget-card:not(#widget-controls)')).filter(w => w.style.display !== 'none');
-            if (widgets.length === 0) return;
-
-            const screenW = window.innerWidth;
-            const screenH = window.innerHeight;
-            
-            let startY = 80; // Always start near the top, ignoring the HUD!
-            const safeW = screenW - 30;
-            let availableH = screenH - startY - 20;
-            const gap = 15;
-
-            // Prioritize Live Comments Widget
-            const searchWidget = document.getElementById('widget-search');
-            const hasSearch = widgets.includes(searchWidget);
-
-            if (hasSearch && screenW > 900) {
-                // PC Layout: Search gets 35% on the Right, others share the Left
-                searchWidget.style.width = `${safeW * 0.35}px`;
-                searchWidget.style.height = `${availableH}px`;
-                searchWidget.style.top = `${startY}px`;
-                searchWidget.style.left = `${15 + (safeW * 0.65) + gap}px`;
-
-                const otherWidgets = widgets.filter(w => w !== searchWidget);
-                if (otherWidgets.length > 0) {
-                    let cols = otherWidgets.length >= 4 ? 2 : 1;
-                    let rows = Math.ceil(otherWidgets.length / cols);
-                    let wW = ((safeW * 0.65)) / cols;
-                    let wH = (availableH - (gap * (rows - 1))) / rows;
-
-                    otherWidgets.forEach((w, i) => {
-                        const col = i % cols;
-                        const row = Math.floor(i / cols);
-                        w.style.width = `${wW}px`;
-                        w.style.height = `${wH}px`;
-                        w.style.left = `${15 + (col * (wW + gap))}px`;
-                        w.style.top = `${startY + (row * (wH + gap))}px`;
-                    });
-                }
-            } else {
-                // Mobile/Tablet Standard Grid
-                let cols = screenW > 800 ? Math.min(3, widgets.length) : (screenW > 500 ? 2 : 1);
-                let rows = Math.ceil(widgets.length / cols);
-                let wW = (safeW - (gap * (cols - 1))) / cols;
-                let wH = (availableH - (gap * (rows - 1))) / rows;
-
-                widgets.forEach((w, i) => {
-                    const col = i % cols;
-                    const row = Math.floor(i / cols);
-                    w.style.width = `${wW}px`;
-                    w.style.height = `${wH}px`;
-                    w.style.left = `${15 + (col * (wW + gap))}px`;
-                    w.style.top = `${startY + (row * (wH + gap))}px`;
-                });
-            }
-
-            widgets.forEach(w => { w.style.zIndex = 100; const c = w.querySelector('.widget-content'); if(c) c.style.zoom = 1; });
-            document.getElementById('sideMenu').classList.remove('open');
+            document.querySelectorAll('.widget-card:not(#widget-controls)').forEach(w => {
+                w.style.position = 'relative';
+                w.style.top = 'auto';
+                w.style.left = 'auto';
+                w.style.width = '100%';
+                w.style.height = '100%';
+                w.classList.remove('is-dragging');
+            });
             saveWidgetState();
         }
 
@@ -801,7 +699,8 @@
                     left: widget.style.left,
                     width: widget.style.width,
                     height: widget.style.height,
-                    zoom: content ? (parseFloat(content.style.zoom) || 1) : 1
+                    zoom: content ? (parseFloat(content.style.zoom) || 1) : 1,
+                    minimized: widget.classList.contains("minimized")
                 };
             });
             saveSettingsToServer();
@@ -848,6 +747,8 @@
                     if(widgetState[widget.id].width) widget.style.width = widgetState[widget.id].width;
                     if(widgetState[widget.id].height) widget.style.height = widgetState[widget.id].height;
                     
+                    if(widgetState[widget.id].minimized) widget.classList.add("minimized");
+                    
                     if(widgetState[widget.id].zoom) {
                         const content = widget.querySelector('.widget-content');
                         if(content) content.style.zoom = widgetState[widget.id].zoom;
@@ -866,6 +767,7 @@
                     if(e.target.classList.contains('widget-close') || e.target.classList.contains('widget-btn')) return;
                     isDragging = true;
                     widget.classList.add('is-dragging');
+                    widget.style.position = 'fixed'; // Float out of CSS grid
                     const rect = widget.getBoundingClientRect();
                     startX = e.clientX; startY = e.clientY;
                     startLeft = rect.left;
@@ -920,6 +822,22 @@
         
         window.addEventListener('DOMContentLoaded', () => {
             initDraggableWidgets();
+            
+            // Recover from sessionStorage
+            const savedComments = sessionStorage.getItem("tiktokLiveComments");
+            if (savedComments) {
+                try {
+                    allComments = JSON.parse(savedComments);
+                    document.getElementById("totalCommentsBadge").innerText = allComments.length.toLocaleString();
+                    renderComments();
+                } catch(e) {}
+            }
+            const savedUser = sessionStorage.getItem("tiktokLiveActiveUser");
+            if (savedUser) {
+                document.getElementById("usernameInput").value = savedUser;
+            }
+            if (isSmoothScroll) startCommentQueue();
+            
             setTimeout(autoArrangeWidgets, 500); // Organize immediately on load
         });
 
@@ -990,7 +908,7 @@
         let commentQueue = [];
         let processQueueInterval = null;
         let currentSpeedMs = 800;
-        let isSmoothScroll = false;
+        let isSmoothScroll = true;
 
         function toggleSmoothScroll() {
             isSmoothScroll = document.getElementById("smoothScrollToggle").checked;
@@ -1012,6 +930,19 @@
             if (isSmoothScroll) startCommentQueue();
         }
 
+        function showUserHistory(uid) {
+            const userComments = allComments.filter(c => c.uniqueId === uid);
+            if (!userComments.length) return;
+            const userNickname = userComments[0].nickname;
+            let html_content = userComments.map(c => `
+                <div style="border-bottom: 1px solid #333; padding: 10px; color: #ddd; margin-bottom: 5px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <div style="font-size:12px; color:#888; margin-bottom:5px;">${c.timestamp}</div>
+                    <div style="font-size:15px;">${c.comment}</div>
+                </div>
+            `).join('');
+            openModal(`مێژووی کۆمێنتەکانی @${uid} (${userNickname})`, `<div style="max-height: 60vh; overflow-y: auto;">${html_content}</div>`);
+        }
+
         function startCommentQueue() {
             clearInterval(processQueueInterval);
             processQueueInterval = setInterval(() => {
@@ -1027,9 +958,9 @@
             const div = document.createElement("div");
             div.className = "comment-item comment-smooth-enter";
             div.innerHTML = `
-                <img class="avatar" src="${c.profilePictureUrl}" onerror="this.src='https://www.tiktok.com/favicon.ico'">
+                <img class="avatar" src="${c.profilePictureUrl}" alt="User Avatar" onerror="this.src='https://www.tiktok.com/favicon.ico'" style="cursor: pointer;" onclick="showUserHistory('${c.uniqueId}')">
                 <div class="comment-text">
-                    <span class="comment-name">
+                    <span class="comment-name" style="cursor: pointer;" onclick="showUserHistory('${c.uniqueId}')">
                         <span>${c.nickname}</span> 
                         <span style="color: #888; font-size: 13px; font-weight: normal; margin-left: 5px;">@${c.uniqueId || 'unknown'}</span>
                         <span style="color: #555; font-size: 12px; font-weight: normal; margin-left: auto; font-family: monospace;">${c.timestamp}</span>
@@ -1051,6 +982,10 @@
             
             allComments.push(data);
             if(allComments.length > 500) allComments.shift();
+            
+            sessionStorage.setItem("tiktokLiveComments", JSON.stringify(allComments));
+            sessionStorage.setItem("tiktokLiveActiveUser", document.getElementById("usernameInput").value);
+            
             document.getElementById("totalCommentsBadge").innerText = allComments.length.toLocaleString();
 
             const searchWidget = document.getElementById('widget-search');
@@ -1088,9 +1023,9 @@
             container.innerHTML = results.slice(-300).reverse().map(c => {
                 return `
                 <div class="comment-item">
-                    <img class="avatar" src="${c.profilePictureUrl}" onerror="this.src='https://www.tiktok.com/favicon.ico'">
+                    <img class="avatar" src="${c.profilePictureUrl}" alt="User Avatar" onerror="this.src='https://www.tiktok.com/favicon.ico'" style="cursor: pointer;" onclick="showUserHistory('${c.uniqueId}')">
                     <div class="comment-text">
-                        <span class="comment-name">
+                        <span class="comment-name" style="cursor: pointer;" onclick="showUserHistory('${c.uniqueId}')">
                             <span>${c.nickname}</span> 
                             <span style="color: #888; font-size: 13px; font-weight: normal; margin-left: 5px;">@${c.uniqueId || 'unknown'}</span>
                             <span style="color: #555; font-size: 12px; font-weight: normal; margin-left: auto; font-family: monospace;">${c.timestamp}</span>
@@ -1140,7 +1075,7 @@
 
                 const newHtml = `
                     <div class="rank">${getRankBadge(index)}</div>
-                    <img class="avatar" src="${u.profilePictureUrl}" onerror="this.src='https://www.tiktok.com/favicon.ico'">
+                    <img class="avatar" src="${u.profilePictureUrl}" alt="User Avatar" onerror="this.src='https://www.tiktok.com/favicon.ico'">
                     <div style="display: flex; flex-direction: column; overflow: hidden; flex-grow: 1;">
                         <span class="name" style="max-width: 100%;">${u.nickname}</span>
                         <span style="color: #888; font-size: 13px; font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@${u.uniqueId || 'unknown'}</span>
@@ -1397,7 +1332,7 @@
             let html = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">` + 
             users.map(u => `
                 <div class="item" style="padding: 8px;">
-                    <img class="avatar" src="${u.profilePictureUrl}" onerror="this.src='https://www.tiktok.com/favicon.ico'" style="width:40px; height:40px;">
+                    <img class="avatar" src="${u.profilePictureUrl}" alt="User Avatar" onerror="this.src='https://www.tiktok.com/favicon.ico'" style="width:40px; height:40px;">
                     <div style="display: flex; flex-direction: column; overflow:hidden;">
                         <span class="name" style="font-size:14px;">${u.nickname}</span>
                         <span style="color: #888; font-size: 12px;">@${u.uniqueId}</span>
