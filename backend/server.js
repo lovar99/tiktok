@@ -162,7 +162,8 @@ io.on("connection", (socket) => {
         const syncData = {
             allComments: [],
             leaderboard: null,
-            isActive: false
+            isActive: false,
+            activeStreamTarget: targetUser && targetUser !== "unknown" ? targetUser : null
         };
         
         const stream = getStream();
@@ -170,6 +171,7 @@ io.on("connection", (socket) => {
             syncData.isActive = true;
             syncData.allComments = stream.comments;
             syncData.leaderboard = stream.leaderboard;
+            stream.connectedSockets.add(socket.id); // FIX: Ensure socket is tracked so it doesn't get cleaned up
         }
 
         if (adminUser && adminUser !== "unknown") {

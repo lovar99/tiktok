@@ -585,7 +585,8 @@
                 document.getElementById("usernameInput").value = data.activeStreamTarget;
             }
             if (data.isActive) {
-                document.getElementById("statusMessage").innerText = "✅ پەیوەندی سەرکەوتوو بوو! (Connected)";
+                const username = data.activeStreamTarget || sessionStorage.getItem("tiktokLiveActiveUser");
+                document.getElementById("statusMessage").innerText = `✅ پەیوەندی سەرکەوتوو بوو! (Connected) - @${username}`;
                 document.getElementById("statusMessage").style.color = "#00FF00";
             } else if (sessionStorage.getItem("tiktokLiveActiveUser")) {
                 sessionStorage.removeItem("tiktokLiveActiveUser");
@@ -1018,13 +1019,22 @@
             const carousel = document.getElementById("mobileCarousel");
             const navTabs = document.querySelectorAll("#mobileCarouselNav .carousel-tab");
             if (carousel && navTabs.length > 0) {
-                carousel.addEventListener('scroll', () => {
-                    const index = Math.round(carousel.scrollLeft / carousel.offsetWidth);
-                    navTabs.forEach((tab, i) => {
-                        if (i === index) tab.classList.add('active');
-                        else tab.classList.remove('active');
+                const observerOptions = {
+                    root: carousel,
+                    threshold: 0.5
+                };
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const index = Array.from(carousel.children).indexOf(entry.target);
+                            navTabs.forEach((tab, i) => {
+                                if (i === index) tab.classList.add('active');
+                                else tab.classList.remove('active');
+                            });
+                        }
                     });
-                });
+                }, observerOptions);
+                Array.from(carousel.children).forEach(child => observer.observe(child));
             }
             
             setTimeout(autoArrangeWidgets, 500); // Organize immediately on load
@@ -1179,16 +1189,15 @@
             `;
             container.prepend(div);
             
-            const mobileContainer = document.getElementById("mobile-commentsList");
-            if (mobileContainer) {
-                const clonedDiv = div.cloneNode(true);
-                mobileContainer.prepend(clonedDiv);
-                setTimeout(() => clonedDiv.classList.add("comment-smooth-enter-active"), 20);
-                if (mobileContainer.children.length > 300) mobileContainer.removeChild(mobileContainer.lastChild);
+            const mobileContainer = document.getElementById("mobile-searchList");
+            if (mobileContainer) mobileContainer.prepend(div.cloneNode(true));
+            
+            if (container.children.length > maxComments) {
+                container.lastElementChild.remove();
+                if (mobileContainer && mobileContainer.lastElementChild) mobileContainer.lastElementChild.remove();
             }
             
-            setTimeout(() => div.classList.add("comment-smooth-enter-active"), 20); // Animate smoothly in
-            if (container.children.length > 300) container.removeChild(container.lastChild);
+            setTimeout(() => div.classList.add("comment-smooth-enter-active"), 20);
         }
 
         socket.on("newComment", (data) => {
@@ -1220,8 +1229,13 @@
         });
 
         function renderComments() {
-            const query = document.getElementById("searchInput").value.trim().toLowerCase();
             const container = document.getElementById("searchList");
+            const mobileContainer = document.getElementById("mobile-searchList");
+            if (!container) return;
+            container.innerHTML = "";
+            if (mobileContainer) mobileContainer.innerHTML = "";
+            
+            const query = document.getElementById("searchInput").value.trim().toLowerCase();
             let results = allComments;
 
             if(query) {
@@ -1233,16 +1247,11 @@
                 });
             }
 
-            if(results.length === 0) {
-                container.innerHTML = "<p style='text-align:center; color:#aaa; font-size: 18px;'>No comments to display yet.</p>";
-                const mobileContainer = document.getElementById("mobile-commentsList");
-                if (mobileContainer) mobileContainer.innerHTML = container.innerHTML;
-                return;
-            }
-
-            container.innerHTML = results.slice(-300).reverse().map(c => {
-                return `
-                <div class="comment-item">
+            const toRender = results.slice(-maxComments).reverse();
+            toRender.forEach(c => {
+                const div = document.createElement("div");
+                div.className = "comment-item";
+                div.innerHTML = `
                     <img class="avatar" src="${c.profilePictureUrl}" alt="User Avatar" onerror="this.src='https://www.tiktok.com/favicon.ico'" style="cursor: pointer;" onclick="showUserHistory('${c.uniqueId}')">
                     <div class="comment-text" style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
                         <div style="display: flex; align-items: baseline; gap: 5px; cursor: pointer;" onclick="showUserHistory('${c.uniqueId}')">
@@ -1252,9 +1261,10 @@
                         </div>
                         <div style="color: #ddd; font-size: 14px; word-break: break-word; line-height: 1.4;" dir="auto">${c.comment}</div>
                     </div>
-                </div>
                 `;
-            }).join("");
+                container.appendChild(div);
+                if (mobileContainer) mobileContainer.appendChild(div.cloneNode(true));
+            });
         }
 
         socket.on("leaderboardUpdate", (data) => {
