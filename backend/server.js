@@ -404,13 +404,8 @@ io.on("connection", (socket) => {
 
         stream.connection.on('like', data => {
             const user = getUser(stream, data);
-            if (data.totalLikeCount) {
-                user.likeCount = data.totalLikeCount;
-                user.actualTotalLikes = data.totalLikeCount;
-            } else {
-                user.likeCount += (data.likeCount || 1); 
-                user.actualTotalLikes = user.likeCount;
-            }
+            user.likeCount += (data.likeCount || 1); 
+            user.actualTotalLikes = user.likeCount;
             emitUpdate(stream, username);
         });
 
