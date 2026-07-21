@@ -489,7 +489,7 @@
             const savedUser = sessionStorage.getItem("tiktokLiveActiveUser");
             if (savedUser) {
                 document.getElementById("statusMessage").innerText = `✅ بەردەوامە لە پەیوەندیکردن بە: @${savedUser}`;
-                socket.emit("setUniqueId", savedUser); // Auto-reconnect!
+                socket.emit("setUniqueId", savedUser); // Rejoin the stream room
             } else {
                 document.getElementById("statusMessage").innerText = "🟢 ئامادەیە بۆ دەستپێکردن";
             }
@@ -544,6 +544,7 @@
 
         socket.on("pollUpdate", (sorted) => {
             const container = document.getElementById("pollResults");
+            if (!container) return; // Prevent innerHTML error
             if(sorted.length === 0) {
                 container.innerHTML = '<span style="color: #aaa; font-size: 12px;">هێشتا دەستی پێنەکردووە...</span>';
                 return;
@@ -1005,6 +1006,23 @@
             currentSpeedMs = 1600 - (val * 150); // Slider logic: 1 is slow, 10 is fast
             if (isSmoothScroll) startCommentQueue();
         }
+
+        function renderHistory() {
+            const container = document.getElementById("historyList");
+            container.innerHTML = searchHistory.map(h => `
+                <div class="history-tag">
+                    <span class="name" onclick="loadFromHistory('${h}')">@${h}</span>
+                    <span class="delete" onclick="removeFromHistory('${h}')">X</span>
+                </div>
+            `).join('');
+        }
+
+        // Add Enter key support for stream starting
+        document.getElementById("usernameInput").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                startStream();
+            }
+        });
 
         function showUserHistory(uid) {
             const userComments = allComments.filter(c => c.uniqueId === uid);
