@@ -161,6 +161,18 @@
         .badge { padding: 6px 10px !important; font-size: 13px !important; flex: 1; text-align: center; border-radius: 20px; background: #1e1e1e; border: 1px solid #333; font-weight: bold; }
         .badge span { color: #fe2c55; }
 
+        .widget-btn { cursor: pointer; padding: 2px 10px; background: #333; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; font-size: 18px; font-weight: bold; color: #fff; transition: 0.2s; user-select: none; }
+        .widget-btn:hover { background: #555; border-color: white; }
+        .snapped-edge { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; opacity: 0.7; cursor: pointer; z-index: 9999 !important; }
+        .snapped-edge:hover { opacity: 1; }
+        
+        .mobile-carousel { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; height: 100%; width: 100%; -webkit-overflow-scrolling: touch; }
+        .mobile-carousel::-webkit-scrollbar { display: none; }
+        .carousel-item { scroll-snap-align: start; flex: 0 0 100%; height: 100%; padding: 10px; box-sizing: border-box; overflow-y: auto; }
+        .carousel-nav { display: flex; justify-content: center; gap: 8px; padding: 8px; background: rgba(0,0,0,0.5); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .carousel-tab { padding: 6px 12px; background: #2b3143; border-radius: 20px; font-size: 13px; cursor: pointer; color: #aaa; border: 1px solid transparent; }
+        .carousel-tab.active { background: #ff3b5c; color: white; border-color: rgba(255,255,255,0.3); }
+
         /* Container Queries for Auto-Scaling inside Widgets */
         .widget-content { container-type: inline-size; container-name: widgetbox; }
         
@@ -258,12 +270,13 @@
     <!-- Side Panel Swiper -->
     <div id="sideMenu" class="glass-panel">
         <div class="menu-toggle" onclick="document.getElementById('sideMenu').classList.toggle('open')">☰</div>
-        <h2 style="color: white; margin-top: 0; font-size: 20px; border-bottom: 1px solid #444; padding-bottom: 10px;">کارتەکان (Widgets)</h2>
-        <button class="menu-btn" onclick="toggleWidget('widget-comments')">💬 زۆرترین کۆمێنتەکان</button>
-        <button class="menu-btn" onclick="toggleWidget('widget-likes')">❤️ زۆرترین لایکەکان</button>
-        <button class="menu-btn" onclick="toggleWidget('widget-gifts')">🎁 زۆرترین دیارییەکان</button>
-        <button class="menu-btn" onclick="toggleWidget('widget-shares')">↗️ زۆرترین شەیرەکان</button>
-        <button class="menu-btn" onclick="toggleWidget('widget-search')">🔍 کۆمێنتە ڕاستەوخۆکان</button>
+        <h2 style="color: white; margin-top: 0; font-size: 20px; border-bottom: 1px solid #444; padding-bottom: 10px;">ویجێتەکان (Widgets)</h2>
+        <button class="menu-btn" onclick="toggleWidget('widget-comments')">💬 کۆمێنتە ڕاستەوخۆکان</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-likes')">❤️ کۆکراوەی لایکەکان</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-gifts')">🎁 کۆکراوەی دیارییەکان</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-shares')">✨ لیستی شەیرەکان</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-search')">🔍 گەڕانی کۆمێنت</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-all-in-one')" style="background: linear-gradient(135deg, #ff3b5c, #9c27b0); border: 1px solid white;">📱 مۆبایل - هەمووی پێکەوە</button>
         <div style="border-top: 1px solid #444; margin: 10px 0;"></div>
         <button class="menu-btn" style="background: #9c27b0;" onclick="autoArrangeWidgets()">📐 ڕێکخستنی ئۆتۆماتیکی</button>
         <button class="menu-btn" style="background: #4CAF50;" onclick="saveSessionToDB()">💾 پاشەکەوتکردن (سێرڤەر)</button>
@@ -369,6 +382,43 @@
         </div>
         <div class="resize-handle"></div>
     </div>
+
+    <!-- Mobile All-in-One Swipeable Widget -->
+    <div id="widget-all-in-one" class="widget-card" style="display: none; background: #0b0f19; width: 380px; height: 500px;">
+        <div class="widget-header">
+            <span>📱 مۆبایل - هەمووی پێکەوە</span>
+            <div style="display:flex; gap:8px;">
+                <span class="widget-btn" onclick="zoomWidget('widget-all-in-one', -1)">-</span>
+                <span class="widget-btn" onclick="zoomWidget('widget-all-in-one', 1)">+</span>
+                <span class="widget-close" onclick="minimizeWidget('widget-all-in-one')">_</span>
+                <span class="widget-close" onclick="toggleWidget('widget-all-in-one')">✖</span>
+            </div>
+        </div>
+        <div class="carousel-nav">
+            <div class="carousel-tab active" onclick="document.getElementById('mobileCarousel').scrollBy({left: -9999, behavior: 'smooth'})">کۆمێنت</div>
+            <div class="carousel-tab" onclick="document.getElementById('mobileCarousel').scrollBy({left: document.getElementById('mobileCarousel').offsetWidth, behavior: 'smooth'})">لایک</div>
+            <div class="carousel-tab" onclick="document.getElementById('mobileCarousel').scrollBy({left: document.getElementById('mobileCarousel').offsetWidth*2, behavior: 'smooth'})">دیاری</div>
+            <div class="carousel-tab" onclick="document.getElementById('mobileCarousel').scrollBy({left: document.getElementById('mobileCarousel').offsetWidth*3, behavior: 'smooth'})">شەیر</div>
+        </div>
+        <div class="widget-content" style="padding: 0; overflow: hidden; height: calc(100% - 85px);">
+            <div id="mobileCarousel" class="mobile-carousel">
+                <div class="carousel-item" id="mobile-commentsList">
+                    <!-- Comments synced here -->
+                </div>
+                <div class="carousel-item" id="mobile-likesList">
+                    <!-- Likes synced here -->
+                </div>
+                <div class="carousel-item" id="mobile-giftsList">
+                    <!-- Gifts synced here -->
+                </div>
+                <div class="carousel-item" id="mobile-sharesList">
+                    <!-- Shares synced here -->
+                </div>
+            </div>
+        </div>
+        <div class="resize-handle"></div>
+    </div>
+
 </div><!-- End Dashboard Grid -->
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -509,13 +559,21 @@
              if (data.allComments) {
                 allComments = data.allComments;
                 document.getElementById("totalCommentsBadge").innerText = allComments.length.toLocaleString();
-                const searchWidget = document.getElementById('widget-search');
-                if (searchWidget && (searchWidget.style.display !== 'none' || searchWidget.classList.contains('active-tab'))) {
-                    renderComments();
-                }
+                renderComments();
             }
             if (data.leaderboard) {
                 renderLeaderboardData(data.leaderboard);
+            }
+            
+            // Sync UI button based on active stream tracking
+            const savedUser = sessionStorage.getItem("tiktokLiveActiveUser");
+            if (savedUser) {
+                const btn = document.getElementById("connectBtn");
+                if (btn) {
+                    btn.innerText = "وەستاندنی ستریم (Stop)";
+                    btn.style.background = "#ff4c4c";
+                    btn.onclick = stopStream;
+                }
             }
         });
         
@@ -859,6 +917,35 @@
                         isDragging = false;
                         widget.classList.remove('is-dragging'); // Removes HUD physics
                         header.releasePointerCapture(e.pointerId);
+                        
+                        // Edge Snapping Physics!
+                        const rect = widget.getBoundingClientRect();
+                        const wW = window.innerWidth;
+                        const wH = window.innerHeight;
+                        const snapThreshold = rect.width * 0.4; // Must drag 40% off screen to snap
+                        
+                        // Reset any previous snap state
+                        widget.onclick = null;
+                        
+                        if (rect.left < -snapThreshold) {
+                            // Snap to Left Edge
+                            widget.style.left = `-${rect.width - 30}px`;
+                            widget.classList.add('snapped-edge');
+                            widget.onclick = () => { widget.style.left = '20px'; widget.classList.remove('snapped-edge'); widget.onclick = null; saveWidgetState(); };
+                        } else if (rect.right > wW + snapThreshold) {
+                            // Snap to Right Edge
+                            widget.style.left = `${wW - 30}px`;
+                            widget.classList.add('snapped-edge');
+                            widget.onclick = () => { widget.style.left = `${wW - rect.width - 20}px`; widget.classList.remove('snapped-edge'); widget.onclick = null; saveWidgetState(); };
+                        } else if (rect.top < -rect.height * 0.4) {
+                            // Snap to Top Edge
+                            widget.style.top = `-${rect.height - 30}px`;
+                            widget.classList.add('snapped-edge');
+                            widget.onclick = () => { widget.style.top = '20px'; widget.classList.remove('snapped-edge'); widget.onclick = null; saveWidgetState(); };
+                        } else {
+                            widget.classList.remove('snapped-edge');
+                        }
+                        
                         saveWidgetState();
                     });
                 }
@@ -1054,6 +1141,15 @@
                 </div>
             `;
             container.prepend(div);
+            
+            const mobileContainer = document.getElementById("mobile-commentsList");
+            if (mobileContainer) {
+                const clonedDiv = div.cloneNode(true);
+                mobileContainer.prepend(clonedDiv);
+                setTimeout(() => clonedDiv.classList.add("comment-smooth-enter-active"), 20);
+                if (mobileContainer.children.length > 300) mobileContainer.removeChild(mobileContainer.lastChild);
+            }
+            
             setTimeout(() => div.classList.add("comment-smooth-enter-active"), 20); // Animate smoothly in
             if (container.children.length > 300) container.removeChild(container.lastChild);
         }
@@ -1102,6 +1198,8 @@
 
             if(results.length === 0) {
                 container.innerHTML = "<p style='text-align:center; color:#aaa; font-size: 18px;'>No comments to display yet.</p>";
+                const mobileContainer = document.getElementById("mobile-commentsList");
+                if (mobileContainer) mobileContainer.innerHTML = container.innerHTML;
                 return;
             }
 
@@ -1172,6 +1270,11 @@
                 if (node.innerHTML !== newHtml) node.innerHTML = newHtml;
                 if (container.children[index] !== node) container.insertBefore(node, container.children[index]);
             });
+            
+            const mobileContainer = document.getElementById("mobile-" + elementId);
+            if (mobileContainer) {
+                mobileContainer.innerHTML = container.innerHTML;
+            }
         }
 
         function startStream() {
@@ -1187,8 +1290,16 @@
                 document.getElementById("statusMessage").style.color = "#aaa";
                 document.getElementById("statusMessage").innerText = "⏳ لە هەوڵی پەیوەندیکردندایە... (Connecting)";
                 
+                // Clear UI lists including Mobile Carousel lists
                 document.getElementById("commentsList").innerHTML = "";
                 document.getElementById("likesList").innerHTML = "";
+                document.getElementById("giftsList").innerHTML = "";
+                document.getElementById("sharesList").innerHTML = "";
+                
+                document.getElementById("mobile-commentsList").innerHTML = "";
+                document.getElementById("mobile-likesList").innerHTML = "";
+                document.getElementById("mobile-giftsList").innerHTML = "";
+                document.getElementById("mobile-sharesList").innerHTML = "";
                 document.getElementById("giftsList").innerHTML = "";
                 document.getElementById("sharesList").innerHTML = "";
                 
@@ -1199,6 +1310,13 @@
                 document.getElementById("liveViewersBadge").innerText = "0";
                 document.getElementById("trackedUsersBadge").innerText = "0";
                 document.getElementById("totalCommentsBadge").innerText = "0";
+                
+                sessionStorage.setItem("tiktokLiveActiveUser", username);
+                
+                const btn = document.getElementById("connectBtn");
+                btn.innerText = "وەستاندنی ستریم (Stop)";
+                btn.style.background = "#ff4c4c";
+                btn.onclick = stopStream;
 
                 socket.emit("startStream", username);
             } else {
