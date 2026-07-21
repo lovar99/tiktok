@@ -1001,6 +1001,16 @@
         window.addEventListener('DOMContentLoaded', () => {
             initDraggableWidgets();
             
+            // Close Side Menu when clicking outside
+            document.addEventListener('click', function(e) {
+                const sideMenu = document.getElementById('sideMenu');
+                if (sideMenu && sideMenu.classList.contains('open')) {
+                    if (!sideMenu.contains(e.target) && !e.target.classList.contains('menu-toggle')) {
+                        sideMenu.classList.remove('open');
+                    }
+                }
+            });
+            
             // Recover from sessionStorage
             const savedComments = sessionStorage.getItem("tiktokLiveComments");
             if (savedComments) {
@@ -1075,10 +1085,11 @@
         
         function renderLeaderboardData(data) {
             document.getElementById("trackedUsersBadge").innerText = data.totalUniqueUsers.toLocaleString();
-            renderList("commentsList", data.topComments, "commentCount");
-            renderList("likesList", data.topLikes, "likeCount");
-            renderList("giftsList", data.topGifts, "giftCount");
-            renderList("sharesList", data.topShares, "shareCount");
+            // Fallback to topComments/topLikes for older cached formats, but use topUsers for live backend events
+            renderList("commentsList", data.topUsers || data.topComments, "commentCount");
+            renderList("likesList", data.topUsers || data.topLikes, "likeCount");
+            renderList("giftsList", data.topUsers || data.topGifts, "giftCount");
+            renderList("sharesList", data.topUsers || data.topShares, "shareCount");
         }
 
         function saveSessionToDB() {
@@ -1106,12 +1117,9 @@
 
         socket.on("pastSessionLoaded", (sessionData) => {
             const users = Object.values(sessionData);
-            const topComments = users.sort((a, b) => b.commentCount - a.commentCount).slice(0, 30);
-            const topLikes = users.sort((a, b) => b.likeCount - a.likeCount).slice(0, 30);
-            const topGifts = users.sort((a, b) => b.giftCount - a.giftCount).slice(0, 30);
-            const topShares = users.sort((a, b) => b.shareCount - a.shareCount).slice(0, 30);
+            const topUsers = users.sort((a, b) => (b.giftCount * 1000 + b.commentCount * 10 + b.actualTotalLikes) - (a.giftCount * 1000 + a.commentCount * 10 + a.actualTotalLikes)).slice(0, 100);
             
-            const processedLeaderboard = { topComments, topLikes, topGifts, topShares, totalUniqueUsers: users.length };
+            const processedLeaderboard = { topUsers, totalUniqueUsers: users.length };
             localStorage.setItem('tiktokLiveLeaderboard', JSON.stringify(processedLeaderboard));
             renderLeaderboardData(processedLeaderboard);
             document.getElementById("statusMessage").innerText = "✅ داتا کۆنەکان بارکران.";
@@ -1300,28 +1308,55 @@
                     let node = container.querySelector(`[data-uid="${u.uniqueId}"]`);
                     let countStyle = countField === "likeCount" ? "margin-left: 0;" : "margin-left: auto;";
                     let extraHtml = countField === "likeCount" ? `<span style="color: #aaa; font-size: 14px; margin-left: auto; margin-right: 15px;">Actual: <b>${(u.actualTotalLikes > u.likeCount ? u.actualTotalLikes : u.likeCount).toLocaleString()}</b></span>` : "";
-
-                    const newHtml = `
-                        <div class="rank">${getRankBadge(index)}</div>
-                        <img class="avatar" src="${u.profilePictureUrl}" alt="User Avatar" onerror="this.src='https://www.tiktok.com/favicon.ico'">
-                        <div style="display: flex; flex-direction: column; overflow: hidden; flex-grow: 1;">
-                            <span class="name" style="max-width: 100%;">${u.nickname}</span>
-                            <span style="color: #888; font-size: 13px; font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@${u.uniqueId || 'unknown'}</span>
-                        </div>
-                        ${extraHtml}
-                        <div class="count" style="${countStyle}">${u[countField].toLocaleString()}</div>
-                    `;
+                    const newCountText = u[countField].toLocaleString();
 
                     if (!node) {
                         node = document.createElement('div');
                         node.className = 'item update-flash';
                         node.setAttribute('data-uid', u.uniqueId);
-                        node.innerHTML = newHtml;
+                        node.innerHTML = `
+                            <div class="rank">${getRankBadge(index)}</div>
+                            <img class="avatar" src="${u.profilePictureUrl}" alt="User Avatar" onerror="this.src='https://www.tiktok.com/favicon.ico'">
+                            <div style="display: flex; flex-direction: column; overflow: hidden; flex-grow: 1;">
+                                <span class="name" style="max-width: 100%;">${u.nickname}</span>
+                                <span style="color: #888; font-size: 13px; font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@${u.uniqueId || 'unknown'}</span>
+                            </div>
+                            <div class="extra-container" style="display: contents;">${extraHtml}</div>
+                            <div class="count" style="${countStyle}">${newCountText}</div>
+                        `;
                         container.appendChild(node);
                         setTimeout(() => node.classList.remove("update-flash"), 1000);
                     } else {
-                        if (node.innerHTML !== newHtml) {
-                            node.innerHTML = newHtml;
+                        let hasChanged = false;
+
+                        const rankEl = node.querySelector('.rank');
+                        const newRank = getRankBadge(index).toString();
+                        if (rankEl && rankEl.innerHTML !== newRank) {
+                            rankEl.innerHTML = newRank;
+                            hasChanged = true;
+                        }
+
+                        const countEl = node.querySelector('.count');
+                        if (countEl && countEl.innerText !== newCountText) {
+                            countEl.innerText = newCountText;
+                            hasChanged = true;
+                        }
+
+                        const nameEl = node.querySelector('.name');
+                        if (nameEl && nameEl.innerText !== u.nickname) {
+                            nameEl.innerText = u.nickname;
+                            hasChanged = true;
+                        }
+
+                        if (countField === "likeCount") {
+                            const extraEl = node.querySelector('.extra-container');
+                            if (extraEl && extraEl.innerHTML !== extraHtml) {
+                                extraEl.innerHTML = extraHtml;
+                                hasChanged = true;
+                            }
+                        }
+
+                        if (hasChanged) {
                             node.classList.remove("update-flash");
                             void node.offsetWidth; // Trigger reflow
                             node.classList.add("update-flash");
