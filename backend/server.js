@@ -153,26 +153,47 @@ io.on("connection", (socket) => {
         if (stream) socket.emit("allUsersData", Object.values(stream.stats));
     });
 
-    socket.on("requestInitialState", async (username) => {
+    socket.on("requestInitialState", async (adminUser, targetUser) => {
+        if (targetUser && targetUser !== "unknown") {
+            socket.activeStreamTarget = targetUser;
+            socket.join(targetUser); // Connects them back to the live room so they get stream updates!
+        }
+
         const syncData = {
             allComments: [],
-            leaderboard: null
+            leaderboard: null,
+            isActive: false
         };
         
         const stream = getStream();
         if (stream) {
+            syncData.isActive = true;
             syncData.allComments = stream.comments;
             syncData.leaderboard = stream.leaderboard;
         }
 
-        if (username && username !== "unknown") {
-            const res = await queryD1(`SELECT settings_data FROM user_settings WHERE username = ?`, [username]);
+        if (adminUser && adminUser !== "unknown") {
+            const res = await queryD1(`SELECT settings_data FROM user_settings WHERE username = ?`, [adminUser]);
             const row = res.result?.[0]?.results?.[0];
             if (row && row.settings_data) {
                 try {
                     const settings = JSON.parse(row.settings_data);
                     syncData.searchHistory = settings.searchHistory;
                     syncData.widgetState = settings.widgetState;
+                    
+                    if (!targetUser && settings.activeStreamTarget) {
+                        targetUser = settings.activeStreamTarget;
+                        socket.activeStreamTarget = targetUser;
+                        socket.join(targetUser); // Join the room recovered from DB!
+                        syncData.activeStreamTarget = targetUser; // Send back to client
+                        
+                        const recoveredStream = activeStreams.get(targetUser);
+                        if (recoveredStream) {
+                            syncData.isActive = true;
+                            syncData.allComments = recoveredStream.comments;
+                            syncData.leaderboard = recoveredStream.leaderboard;
+                        }
+                    }
                 } catch(e) {}
             }
         }
@@ -183,7 +204,8 @@ io.on("connection", (socket) => {
         if (!data.username || data.username === "unknown") return;
         const settingsJson = JSON.stringify({
             searchHistory: data.searchHistory,
-            widgetState: data.widgetState
+            widgetState: data.widgetState,
+            activeStreamTarget: data.activeStreamTarget
         });
         
         await queryD1(`
