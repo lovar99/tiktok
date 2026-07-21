@@ -247,6 +247,20 @@ io.on("connection", (socket) => {
         socket.emit("adminRefresh");
     });
 
+    socket.on("stopStream", () => {
+        if (tiktokLiveConnection) {
+            tiktokLiveConnection.disconnect();
+            tiktokLiveConnection = null;
+        }
+    });
+
+    socket.on("stopStream", () => {
+        if (tiktokLiveConnection) {
+            tiktokLiveConnection.disconnect();
+            tiktokLiveConnection = null;
+        }
+    });
+
     socket.on("startStream", (username) => {
         if (tiktokLiveConnection) tiktokLiveConnection.disconnect();
         userStats = {};
