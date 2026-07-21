@@ -1007,15 +1007,6 @@
             if (isSmoothScroll) startCommentQueue();
         }
 
-        function renderHistory() {
-            const container = document.getElementById("historyList");
-            container.innerHTML = searchHistory.map(h => `
-                <div class="history-tag">
-                    <span class="name" onclick="loadFromHistory('${h}')">@${h}</span>
-                    <span class="delete" onclick="removeFromHistory('${h}')">X</span>
-                </div>
-            `).join('');
-        }
 
         // Add Enter key support for stream starting
         document.getElementById("usernameInput").addEventListener("keydown", function(event) {
