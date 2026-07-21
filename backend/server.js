@@ -249,20 +249,17 @@ io.on("connection", (socket) => {
 
     socket.on("stopStream", () => {
         if (tiktokLiveConnection) {
-            tiktokLiveConnection.disconnect();
-            tiktokLiveConnection = null;
-        }
-    });
-
-    socket.on("stopStream", () => {
-        if (tiktokLiveConnection) {
-            tiktokLiveConnection.disconnect();
+            try { tiktokLiveConnection.disconnect(); } catch(e) {}
             tiktokLiveConnection = null;
         }
     });
 
     socket.on("startStream", (username) => {
-        if (tiktokLiveConnection) tiktokLiveConnection.disconnect();
+        if (tiktokLiveConnection) {
+            try { tiktokLiveConnection.disconnect(); } catch(e) {}
+            tiktokLiveConnection = null;
+        }
+        
         userStats = {};
         globalActiveComments = [];
         globalActiveLeaderboard = null;
@@ -274,9 +271,9 @@ io.on("connection", (socket) => {
         tiktokLiveConnection = new TikTokLiveConnection(username, {});
         
         tiktokLiveConnection.connect().then(() => {
-            socket.emit("streamStatus", { status: "success", message: `✅ Successfully connected to @${username}!` });
+            socket.emit("streamStatus", { status: "success", message: `✅ سەرکەوتوو بوو! پەیوەست بوو بە @${username}` });
         }).catch(err => {
-            socket.emit("streamStatus", { status: "error", message: `❌ Failed to connect to @${username}.` });
+            socket.emit("streamStatus", { status: "error", message: `❌ نەتوانرا پەیوەندی بکرێت بە @${username}` });
         });
 
         tiktokLiveConnection.on('roomUser', data => { if (data.viewerCount !== undefined) socket.emit("viewerUpdate", { count: data.viewerCount }); });
