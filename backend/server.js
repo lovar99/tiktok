@@ -404,8 +404,13 @@ io.on("connection", (socket) => {
 
         stream.connection.on('like', data => {
             const user = getUser(stream, data);
-            user.likeCount += (data.likeCount || 1); 
-            user.actualTotalLikes = Math.max(user.likeCount, (data.totalLikeCount || 0));
+            if (data.totalLikeCount) {
+                user.likeCount = data.totalLikeCount;
+                user.actualTotalLikes = data.totalLikeCount;
+            } else {
+                user.likeCount += (data.likeCount || 1); 
+                user.actualTotalLikes = user.likeCount;
+            }
             emitUpdate(stream, username);
         });
 
@@ -429,10 +434,13 @@ io.on("connection", (socket) => {
         });
 
         stream.connection.on('disconnected', () => {
-            io.to(username).emit("streamStatus", { status: "error", message: `⚠️ پەیوەندی بە ستریمەکەوە پچڕا (Disconnected)` });
-            saveStreamToD1(username, stream.stats); // Auto-save!
-            if (stream.watchdog) clearInterval(stream.watchdog);
-            activeStreams.delete(username);
+            console.log("Stream disconnected, attempting reconnect for @", username);
+            stream.connection.connect().catch(e => {
+                io.to(username).emit("streamStatus", { status: "error", message: `⚠️ پەیوەندی بە ستریمەکەوە پچڕا (Disconnected)` });
+                saveStreamToD1(username, stream.stats); // Auto-save!
+                if (stream.watchdog) clearInterval(stream.watchdog);
+                activeStreams.delete(username);
+            });
         });
 
         stream.connection.on('error', err => {

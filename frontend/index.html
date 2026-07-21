@@ -1312,7 +1312,7 @@
 
                     if (!node) {
                         node = document.createElement('div');
-                        node.className = 'item update-flash';
+                        node.className = 'item';
                         node.setAttribute('data-uid', u.uniqueId);
                         node.innerHTML = `
                             <div class="rank">${getRankBadge(index)}</div>
@@ -1325,42 +1325,26 @@
                             <div class="count" style="${countStyle}">${newCountText}</div>
                         `;
                         container.appendChild(node);
-                        setTimeout(() => node.classList.remove("update-flash"), 1000);
                     } else {
-                        let hasChanged = false;
-
+                        // Just update the inner properties directly, without any CSS flash animations
                         const rankEl = node.querySelector('.rank');
-                        const newRank = getRankBadge(index).toString();
-                        if (rankEl && rankEl.innerHTML !== newRank) {
-                            rankEl.innerHTML = newRank;
-                            hasChanged = true;
-                        }
+                        if (rankEl) rankEl.innerHTML = getRankBadge(index);
 
                         const countEl = node.querySelector('.count');
                         if (countEl && countEl.innerText !== newCountText) {
                             countEl.innerText = newCountText;
-                            hasChanged = true;
                         }
 
                         const nameEl = node.querySelector('.name');
                         if (nameEl && nameEl.innerText !== u.nickname) {
                             nameEl.innerText = u.nickname;
-                            hasChanged = true;
                         }
 
                         if (countField === "likeCount") {
                             const extraEl = node.querySelector('.extra-container');
                             if (extraEl && extraEl.innerHTML !== extraHtml) {
                                 extraEl.innerHTML = extraHtml;
-                                hasChanged = true;
                             }
-                        }
-
-                        if (hasChanged) {
-                            node.classList.remove("update-flash");
-                            void node.offsetWidth; // Trigger reflow
-                            node.classList.add("update-flash");
-                            setTimeout(() => node.classList.remove("update-flash"), 1000);
                         }
                     }
 
