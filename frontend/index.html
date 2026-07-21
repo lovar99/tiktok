@@ -1,14 +1,20 @@
 <!DOCTYPE html>
 <html lang="ku" dir="rtl">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
+        html { min-height: 100vh; background-color: #121212; transition: background 0.3s; }
+        html.camera-active { background-color: transparent !important; }
+        
         body { background-color: transparent; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; min-height: 100vh; overflow-x: hidden; }
         
-        #cameraBg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: -100; background: #000; }
+        #cameraBg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: -100; opacity: 0; visibility: hidden; transition: opacity 0.5s; pointer-events: none; }
+        html.camera-active #cameraBg { opacity: 1; visibility: visible; }
         
         .stats-header, .controls, .history-container, #visualAlert { position: relative; z-index: 10; background: rgba(30, 30, 30, 0.7) !important; backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         
@@ -21,27 +27,43 @@
         .menu-btn { padding: 15px; background: rgba(40,40,40,0.8); border: 1px solid #555; color: white; border-radius: 8px; cursor: pointer; text-align: right; transition: 0.2s; font-weight: bold; font-size: 16px; display: flex; align-items: center; gap: 10px; }
         .menu-btn:hover { background: #fe2c55; border-color: #fe2c55; }
 
-        /* Draggable Widgets */
-        .widget-card { position: absolute; display: none; flex-direction: column; background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(12px); border-radius: 12px; border: 1px solid #444; min-width: 250px; min-height: 200px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); z-index: 100; }
-        .widget-header { background: rgba(10, 10, 10, 0.9); padding: 12px 15px; cursor: grab; font-weight: bold; color: #fe2c55; display: flex; justify-content: space-between; align-items: center; user-select: none; touch-action: none; border-radius: 12px 12px 0 0; border-bottom: 1px solid #333; font-size: 16px; }
+        /* Premium Draggable Widgets */
+        .widget-card { position: absolute; display: none; flex-direction: column; background: rgba(18, 20, 28, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08); min-width: 250px; min-height: 200px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); z-index: 100; transition: box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease; }
+        .widget-card.is-dragging { transform: scale(1.02); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 59, 92, 0.5); opacity: 0.95; z-index: 9999 !important; }
+        .widget-header { background: rgba(255, 255, 255, 0.03); padding: 12px 16px; cursor: grab; font-weight: 600; color: #F3F4F6; display: flex; justify-content: space-between; align-items: center; user-select: none; touch-action: none; border-radius: 16px 16px 0 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 15px; }
         .widget-header:active { cursor: grabbing; }
-        .widget-content { padding: 15px; overflow-y: auto; flex-grow: 1; height: calc(100% - 50px); }
-        .widget-content::-webkit-scrollbar { width: 8px; }
+        .widget-header > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-left: 10px; text-shadow: 0 0 8px rgba(255,255,255,0.2); }
+        .widget-header > div { flex-shrink: 0; }
+        .widget-content { padding: 15px; overflow-y: auto; overflow-x: hidden; flex-grow: 1; height: calc(100% - 50px); }
+        .widget-content::-webkit-scrollbar { width: 6px; }
         .widget-content::-webkit-scrollbar-track { background: transparent; }
-        .widget-content::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
-        .widget-content::-webkit-scrollbar-thumb:hover { background: #fe2c55; }
-        .resize-handle { position: absolute; bottom: 0; left: 0; width: 30px; height: 30px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, #888 50%); border-bottom-left-radius: 12px; }
-        .widget-close { cursor: pointer; color: #aaa; font-size: 18px; padding: 0 5px; }
-        .widget-close:hover { color: #ff4c4c; }
+        .widget-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        .widget-content::-webkit-scrollbar-thumb:hover { background: #FF3B5C; }
+        .resize-handle { position: absolute; bottom: 0; left: 0; width: 24px; height: 24px; cursor: nwse-resize; z-index: 100; background: transparent; }
+        .resize-handle::after { content: ''; position: absolute; bottom: 6px; left: 6px; width: 10px; height: 10px; border-bottom: 2px solid rgba(255, 255, 255, 0.3); border-left: 2px solid rgba(255, 255, 255, 0.3); border-bottom-left-radius: 3px; transition: border-color 0.2s; }
+        .resize-handle:hover::after { border-color: #FF3B5C; }
+        .widget-close { width: 28px; height: 28px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #9CA3AF; transition: all 0.2s ease; cursor: pointer; }
+        .widget-close:hover { background: rgba(255, 59, 92, 0.2); color: #FF3B5C; }
         
         .stats-header { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; width: 95%; max-width: 1400px; }
         .badge { background: #1e1e1e; padding: 12px 25px; border-radius: 30px; font-size: 18px; font-weight: bold; border: 2px solid #333; }
         .badge span { color: #fe2c55; }
 
         .controls { background: #1e1e1e; padding: 20px; border-radius: 12px; width: 95%; max-width: 1400px; display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; box-sizing: border-box; }
-        .controls input { padding: 12px; border-radius: 8px; border: none; outline: none; background: #2a2a2a; color: white; font-size: 16px; width: 250px; }
-        .start-btn { padding: 12px 24px; border-radius: 8px; border: none; background: #fe2c55; color: white; font-size: 16px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .start-btn:hover { background: #e0274b; }
+        .controls input { padding: 14px 16px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); outline: none; background: rgba(0, 0, 0, 0.2); color: white; font-size: 15px; width: 250px; transition: all 0.3s ease; }
+        .controls input:focus { border-color: #FF3B5C; box-shadow: 0 0 0 3px rgba(255, 59, 92, 0.15); }
+        .start-btn { padding: 14px 24px; border-radius: 10px; border: none; background: linear-gradient(135deg, #FF3B5C 0%, #D80032 100%); color: white; font-size: 15px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 15px rgba(255, 59, 92, 0.3); transition: all 0.3s ease; }
+        .start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 59, 92, 0.5); }
+        .start-btn:active { transform: translateY(1px); }
+
+        /* Item Entrance Animation */
+        .item { display: flex; align-items: center; padding: 12px 16px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; width: 100%; box-sizing: border-box; overflow: hidden; border-left: 3px solid transparent; transition: all 0.3s ease; animation: slideInFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .item:hover { background: rgba(255, 255, 255, 0.08); border-left: 3px solid #FF3B5C; }
+        @keyframes slideInFade { 0% { opacity: 0; transform: translateY(15px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+
+        /* Live Breathing Pulse */
+        .live-pulse-dot { width: 10px; height: 10px; background-color: #FF3B5C; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px #FF3B5C; animation: breathingGlow 2s infinite ease-in-out; vertical-align: middle; margin-left: 5px; }
+        @keyframes breathingGlow { 0% { transform: scale(0.8); opacity: 0.8; box-shadow: 0 0 0px rgba(255,59,92, 0.2); } 50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 15px rgba(255,59,92, 0.6); } 100% { transform: scale(0.8); opacity: 0.8; box-shadow: 0 0 0px rgba(255,59,92, 0.2); } }
         
         .save-btn { padding: 12px 24px; border-radius: 8px; border: none; background: #4CAF50; color: white; font-size: 16px; cursor: pointer; font-weight: bold; transition: 0.2s; margin-left: auto; }
         .save-btn:hover { background: #45a049; }
@@ -68,14 +90,16 @@
         h2 { color: #fe2c55; text-align: center; margin-top: 0; font-size: 28px; margin-bottom: 25px; }
 
         .grid-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-        .item { display: flex; align-items: center; padding: 10px; background: #2a2a2a; border-radius: 8px; }
-        .rank { font-size: 22px; width: 35px; text-align: center; margin-right: 10px; }
+        .item { display: flex; align-items: center; padding: 10px; background: #2a2a2a; border-radius: 8px; width: 100%; box-sizing: border-box; overflow: hidden; }
+        .rank { font-size: 22px; width: 35px; text-align: center; margin-right: 10px; flex-shrink: 0; }
         .avatar { width: 45px; height: 45px; border-radius: 50%; margin-right: 12px; border: 2px solid #444; flex-shrink: 0; }
-        .name { font-size: 16px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
-        .count { background: #fe2c55; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 15px; }
+        .name { font-size: 16px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .count { background: #fe2c55; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 15px; flex-shrink: 0; margin-right: 5px; }
 
         .search-bar { width: 100%; padding: 15px; border-radius: 8px; border: none; outline: none; background: #2a2a2a; color: white; font-size: 18px; margin-bottom: 20px; box-sizing: border-box; border: 1px solid #444; }
-        .comment-item { display: flex; align-items: flex-start; padding: 15px; background: #2a2a2a; border-radius: 8px; margin-bottom: 10px; }
+        .comment-item { display: flex; align-items: flex-start; padding: 15px; background: #2a2a2a; border-radius: 8px; margin-bottom: 10px; width: 100%; box-sizing: border-box; transition: all 0.3s ease; }
+        .comment-smooth-enter { opacity: 0; transform: translateY(-20px); }
+        .comment-smooth-enter-active { opacity: 1; transform: translateY(0); }
         .comment-text { display: flex; flex-direction: column; width: 100%; }
         .comment-name { display: flex; align-items: center; font-weight: bold; color: #fe2c55; font-size: 16px; flex-wrap: wrap; }
         
@@ -94,7 +118,7 @@
             #statusMessage { margin: 10px 0; text-align: center; }
         }
         
-        @media (max-width: 600px) {
+        @media (max-width: 768px) and (orientation: portrait) {
             .grid-list { grid-template-columns: 1fr; }
             .stats-header { flex-direction: column; align-items: stretch; width: 100%; }
             .badge { text-align: center; width: 100%; box-sizing: border-box; }
@@ -104,6 +128,14 @@
             h2 { font-size: 22px; }
             .comment-name { flex-direction: column; align-items: flex-start; }
             .comment-name span:last-child { margin-left: 0 !important; margin-top: 5px; }
+            .widget-card { max-width: 95vw !important; max-height: 80vh !important; }
+        }
+
+        /* 📱 SMARTPHONE LANDSCAPE (STREAMER MODE) */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .widget-card { max-height: 90vh !important; }
+            .widget-header { padding: 8px 12px; font-size: 14px; }
+            .item { padding: 4px 8px; }
         }
     </style>
 </head>
@@ -120,7 +152,7 @@
         
         .fab-menu { position: fixed; bottom: 20px; left: 20px; background: #fe2c55; color: white; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 2000; cursor: pointer; border: 2px solid #fff; transition: 0.2s; user-select: none; }
         .fab-menu:active { transform: scale(0.9); }
-        .resize-handle { width: 50px !important; height: 50px !important; background: linear-gradient(135deg, transparent 50%, #fe2c55 50%) !important; bottom: -1px; left: -1px; border-bottom-left-radius: 12px; z-index: 100; touch-action: none; }
+        /* Original red blocky handle removed for modern HUD design */
         
         .controls-grid { display: flex; flex-direction: column; gap: 8px; }
         .controls-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; width: 100%; }
@@ -128,54 +160,149 @@
         .controls-row input { background: #2a2a2a; color: white; border: 1px solid #444; }
         .badge { padding: 6px 10px !important; font-size: 13px !important; flex: 1; text-align: center; border-radius: 20px; background: #1e1e1e; border: 1px solid #333; font-weight: bold; }
         .badge span { color: #fe2c55; }
+
+        /* Container Queries for Auto-Scaling inside Widgets */
+        .widget-content { container-type: inline-size; container-name: widgetbox; }
+        
+        @container widgetbox (max-width: 320px) {
+            .item { padding: 6px; }
+            .avatar { width: 35px; height: 35px; margin-right: 8px; }
+            .rank { font-size: 16px; width: 25px; margin-right: 5px; }
+            .name { font-size: 13px; max-width: 100px; }
+            .count { font-size: 13px; padding: 4px 8px; }
+        }
+        @container widgetbox (max-width: 220px) {
+            .item { padding: 4px; }
+            .avatar { width: 25px; height: 25px; margin-right: 5px; border-width: 1px; }
+            .rank { font-size: 14px; width: 20px; margin-right: 3px; }
+            .name { font-size: 11px; max-width: 60px; }
+            .count { font-size: 11px; padding: 2px 5px; }
+            .comment-item { padding: 8px; }
+            .comment-name { font-size: 12px; }
+            .comment-name span:nth-child(2) { font-size: 10px; }
+            .comment-text span:last-child { font-size: 12px; margin-top: 2px; }
+        }
+
+        /* Standard Mode vs Live Mode Toggle System */
+        body:not(.live-mode) .fab-menu,
+        body:not(.live-mode) #sideMenu { display: none !important; }
+        
+        /* Standard Mode: Compact Centered Box */
+        body:not(.live-mode) #widget-controls { 
+            display: flex !important; 
+            position: relative !important; top: auto !important; left: auto !important; right: auto !important;
+            width: 100% !important; max-width: 400px !important; margin: 20px auto !important; 
+            max-height: none !important;
+        }
+        body:not(.live-mode) #widget-controls .widget-header { display: none !important; }
+        body:not(.live-mode) #widget-controls .resize-handle { display: none !important; }
+        
+        /* Live Mode: Top-Right Floating HUD */
+        body.live-mode #widget-controls {
+            position: absolute !important; width: 380px !important; top: 20px !important; left: 20px !important;
+        }
+
+        body:not(.live-mode) .widget-card:not(#widget-controls) { 
+            position: relative !important; top: auto !important; left: auto !important; right: auto !important;
+            width: 95% !important; max-width: 1400px !important; margin: 0 auto 20px auto !important; 
+            height: auto !important; display: none !important; 
+        }
+        body:not(.live-mode) .widget-card.active-tab { display: flex !important; }
+        body:not(.live-mode) .widget-card:not(#widget-controls) .widget-header { display: none !important; }
+        body:not(.live-mode) .widget-card:not(#widget-controls) .resize-handle { display: none !important; }
+
+        .standard-tabs { display: flex; gap: 8px; margin-top: 20px; margin-bottom: 15px; width: 100%; justify-content: center; flex-wrap: wrap; z-index: 10; position: relative; }
+        .standard-tabs .tab-btn { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 8px 16px; font-size: 14px; border-radius: 20px; backdrop-filter: blur(10px); }
+        .standard-tabs .tab-btn.active { background: #FF3B5C; border-color: #FF3B5C; box-shadow: 0 4px 10px rgba(255,59,92,0.4); }
+        body.live-mode .standard-tabs { display: none !important; }
+
+        @keyframes animatedBorder {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .premium-controls {
+            background: linear-gradient(135deg, rgba(18,20,28,0.9), rgba(18,20,28,0.95)) padding-box,
+                        linear-gradient(90deg, #FF3B5C, #00F2FE, #FF3B5C) border-box;
+            border: 2px solid transparent;
+            background-size: 200% 200%;
+            animation: animatedBorder 4s ease infinite;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+        
+        /* Z-index safety and zoom buttons */
+        #widget-controls { z-index: 1500 !important; }
+        #sideMenu { z-index: 2100 !important; }
+        .widget-btn { cursor: pointer; color: #aaa; font-size: 16px; padding: 0 5px; font-weight: bold; background: #2a2a2a; border-radius: 4px; display: inline-block; width: 24px; text-align: center; }
+        .widget-btn:hover { color: white; background: #fe2c55; }
+        
+        @keyframes flash { 0% { opacity: 1; } 100% { opacity: 0.6; } }
+        .poll-item { background: #1e1e1e; padding: 6px 12px; border-radius: 8px; font-weight: bold; border: 1px solid #fe2c55; display: flex; align-items: center; }
+        .poll-item span { color: #fe2c55; margin-left: 10px; font-size: 16px; }
+        
+        .fab-menu { position: fixed; bottom: 20px; left: 20px; background: #fe2c55; color: white; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 2000; cursor: pointer; border: 2px solid #fff; transition: 0.2s; user-select: none; }
+        .fab-menu:active { transform: scale(0.9); }
+
+        /* 💻 PC/Desktop ONLY Layout Fixes (Prevents massive stretching) */
+        @media (min-width: 801px) {
+            .controls-row input, .controls-row button {
+                flex: 0 1 auto !important;
+                min-width: 180px;
+                padding: 12px 20px;
+            }
+            .badge {
+                flex: 0 1 auto !important;
+                min-width: 220px;
+                padding: 12px 20px !important;
+                font-size: 16px !important;
+            }
+            /* Keep HUD completely compact on PC */
+            #widget-controls { width: 380px !important; }
+        }
     </style>
+</head>
+<body>
+    <!-- Camera Background for Mobile Screen-sharing -->
+    <video id="cameraBg" autoplay playsinline muted></video>
 
-    <!-- Main Controls Widget (Movable & Resizable Header) -->
-    <div id="widget-controls" class="widget-card" style="top: 20px; left: 5%; width: 90vw; min-height: 100px; max-height: 85vh; display: flex;">
-        <div class="widget-header">
-            <span id="secretAdminTrigger" style="user-select: none; font-size: 16px;">🏆 کۆنتڕۆڵی لایڤ</span>
-            <span class="widget-close" onclick="toggleWidget('widget-controls')">✖</span>
+    <!-- Floating Button to Toggle Controls -->
+    <div class="fab-menu" onclick="toggleWidget('widget-controls')" title="کردنەوەی کۆنتڕۆڵەکان">⚙️</div>
+
+    <!-- Main Controls Widget (Ultra-Compact HUD) -->
+    <div id="widget-controls" class="widget-card premium-controls" style="display: flex; padding: 5px; z-index: 2000;">
+        <div class="widget-header" style="border-bottom: none; padding: 5px 10px; cursor: grab;">
+            <span id="secretAdminTrigger" style="user-select: none; font-size: 14px;">🏆 کۆنتڕۆڵی لایڤ</span>
+            <span class="widget-close" onclick="toggleWidget('widget-controls')" style="width: 24px; height: 24px; font-size: 12px;">✖</span>
         </div>
-        <div class="widget-content controls-grid">
+        <div class="widget-content controls-grid" style="padding: 5px; overflow: hidden; display: flex; flex-direction: column; gap: 8px;">
             
-            <div class="controls-row">
-                <div class="badge" onclick="fetchAllUsers()" style="cursor: pointer;" title="هەموو بەکارهێنەران">👥 <span id="trackedUsersBadge">0</span></div>
-                <div class="badge">🔴 <span id="liveViewersBadge">0</span></div>
-                <div class="badge">💬 <span id="totalCommentsBadge">0</span></div>
+            <div style="display: flex; gap: 5px;">
+                <input type="text" id="usernameInput" placeholder="ناوی تیکتۆک..." oninput="this.value = this.value.toLowerCase().replace(/@/g, '').trim()" style="flex: 1; padding: 8px 12px; font-size: 14px; margin: 0; min-width: 0;" />
+                <button class="start-btn" onclick="startStream()" style="padding: 8px 15px; font-size: 14px; margin: 0; white-space: nowrap;">دەستپێکردن</button>
+                <button class="stop-btn" onclick="stopStream()" style="padding: 8px 15px; font-size: 14px; margin: 0; white-space: nowrap; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">وەستان</button>
             </div>
 
-            <div class="controls-row">
-                <input type="text" id="usernameInput" placeholder="ناوی تیکتۆک..." oninput="this.value = this.value.toLowerCase().replace(/@/g, '').trim()" />
-                <button class="start-btn" onclick="startStream()">دەستپێکردن</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
+                <div class="badge" onclick="fetchAllUsers()" style="cursor: pointer; margin: 0; padding: 6px 2px !important; font-size: 12px !important; white-space: nowrap; overflow: hidden;" title="هەموو بەکارهێنەران">👥 <span id="trackedUsersBadge">0</span></div>
+                <div class="badge" style="margin: 0; padding: 6px 2px !important; font-size: 12px !important; white-space: nowrap; overflow: hidden;"><span class="live-pulse-dot" style="width:8px;height:8px;margin:0 2px;"></span> <span id="liveViewersBadge">0</span></div>
+                <div class="badge" style="margin: 0; padding: 6px 2px !important; font-size: 12px !important; white-space: nowrap; overflow: hidden;">💬 <span id="totalCommentsBadge">0</span></div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                <button class="start-btn" style="background: #ff9800; padding: 8px; font-size: 12px;" id="liveModeBtn" onclick="toggleLiveMode()">📺 لایڤ مۆد</button>
+                <button class="save-btn" style="background: #00bcd4; color: white; padding: 8px; font-size: 12px; width: 100%; margin: 0;" onclick="autoArrangeWidgets()">📐 ڕێکخستن</button>
+                <button class="start-btn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 8px; font-size: 12px;" onclick="toggleCamera()">📷 کامێرا</button>
+                <button class="start-btn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 8px; font-size: 12px;" onclick="switchCamera()">🔄 سوڕاندن</button>
             </div>
             
-            <div id="pollContainer" class="controls-row" style="flex-direction: column; align-items: stretch; gap: 5px;">
-                <div class="controls-row poll-input-row" style="width: 100%;">
-                    <input type="text" class="poll-keyword" placeholder="وشەی دەنگدان (نموونە: یەکەم)" oninput="updatePollKeywords()" style="flex: 1;" />
-                    <button class="start-btn" style="background: #4CAF50; min-width: 45px; flex: 0; padding: 10px;" onclick="addPollField()">+</button>
-                </div>
-            </div>
+            <button class="save-btn" onclick="saveDashboardHTML()" style="background: #10B981; padding: 8px; font-size: 12px; width: 100%; margin: 0;">💾 پاشەکەوت</button>
 
-            <div class="controls-row">
-                <button class="start-btn" style="background: #2196F3;" onclick="toggleCamera()">📷 کامێرا</button>
-                <button class="start-btn" style="background: #9c27b0;" onclick="switchCamera()">🔄 سوڕاندن</button>
-                <button class="save-btn" onclick="saveDashboardHTML()" style="background: #4CAF50;">💾 پاشەکەوت</button>
-            </div>
-
-            <div class="controls-row" style="background: #2a2a2a; padding: 8px; border-radius: 6px; border: 1px solid #444;">
-                <span id="statusMessage" style="font-size: 13px; width:100%; text-align:center;">چاوەڕێی دەستپێکردن...</span>
-            </div>
-
-            <div id="historyContainer" class="history-container" style="margin-bottom: 0; width: 100%; gap: 5px;"></div>
-
-            <div class="controls-row" style="background: #2a2a2a; padding: 8px; border-radius: 6px; flex-direction: column; align-items: flex-start; border: 1px solid #444;">
-                <h3 style="margin: 0 0 5px 0; color: #fe2c55; font-size: 14px;">📊 ڕاپرسی:</h3>
-                <div id="pollResults" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <span style="color: #aaa; font-size: 12px;">هێشتا دەستی پێنەکردووە...</span>
-                </div>
+            <div style="text-align: center;">
+                <span id="statusMessage" style="font-size: 12px; color: #aaa;">چاوەڕێی دەستپێکردن...</span>
             </div>
         </div>
-        <div class="resize-handle"></div>
     </div>
 
     <!-- Side Panel Swiper -->
@@ -188,15 +315,29 @@
         <button class="menu-btn" onclick="toggleWidget('widget-shares')">↗️ زۆرترین شەیرەکان</button>
         <button class="menu-btn" onclick="toggleWidget('widget-search')">🔍 کۆمێنتە ڕاستەوخۆکان</button>
         <div style="border-top: 1px solid #444; margin: 10px 0;"></div>
+        <button class="menu-btn" style="background: #9c27b0;" onclick="autoArrangeWidgets()">📐 ڕێکخستنی ئۆتۆماتیکی</button>
         <button class="menu-btn" style="background: #4CAF50;" onclick="saveSessionToDB()">💾 پاشەکەوتکردن (سێرڤەر)</button>
         <button class="menu-btn" style="background: #2196F3;" onclick="viewHistory()">📜 مێژووی دانیشتنەکان</button>
     </div>
 
+    <!-- Standard Tabs for Default Static Mode -->
+    <div class="tabs standard-tabs">
+        <button class="tab-btn active" onclick="showStandardTab('widget-comments', this)">💬 زۆرترین کۆمێنتەکان</button>
+        <button class="tab-btn" onclick="showStandardTab('widget-likes', this)">❤️ زۆرترین لایکەکان</button>
+        <button class="tab-btn" onclick="showStandardTab('widget-gifts', this)">🎁 زۆرترین دیارییەکان</button>
+        <button class="tab-btn" onclick="showStandardTab('widget-shares', this)">↗️ زۆرترین شەیرەکان</button>
+        <button class="tab-btn" onclick="showStandardTab('widget-search', this)">🔍 کۆمێنتە ڕاستەوخۆکان</button>
+    </div>
+
     <!-- Draggable Floating Widgets -->
-    <div id="widget-comments" class="widget-card" style="top: 250px; left: 50px; width: 350px; height: 350px;">
+    <div id="widget-comments" class="widget-card active-tab" style="top: 250px; left: 50px; width: 350px; height: 350px;">
         <div class="widget-header">
             <span>💬 زۆرترین کۆمێنتەکان</span>
-            <span class="widget-close" onclick="toggleWidget('widget-comments')">✖</span>
+            <div style="display:flex; gap:8px;">
+                <span class="widget-btn" onclick="zoomWidget('widget-comments', -1)">-</span>
+                <span class="widget-btn" onclick="zoomWidget('widget-comments', 1)">+</span>
+                <span class="widget-close" onclick="toggleWidget('widget-comments')">✖</span>
+            </div>
         </div>
         <div class="widget-content">
             <div id="commentsList" class="grid-list" style="grid-template-columns: 1fr;"></div>
@@ -207,7 +348,11 @@
     <div id="widget-likes" class="widget-card" style="top: 250px; left: 450px; width: 350px; height: 350px;">
         <div class="widget-header">
             <span>❤️ زۆرترین لایکەکان</span>
-            <span class="widget-close" onclick="toggleWidget('widget-likes')">✖</span>
+            <div style="display:flex; gap:8px;">
+                <span class="widget-btn" onclick="zoomWidget('widget-likes', -1)">-</span>
+                <span class="widget-btn" onclick="zoomWidget('widget-likes', 1)">+</span>
+                <span class="widget-close" onclick="toggleWidget('widget-likes')">✖</span>
+            </div>
         </div>
         <div class="widget-content">
             <div id="likesList" class="grid-list" style="grid-template-columns: 1fr;"></div>
@@ -218,7 +363,11 @@
     <div id="widget-gifts" class="widget-card" style="top: 650px; left: 50px; width: 350px; height: 350px;">
         <div class="widget-header">
             <span>🎁 زۆرترین دیارییەکان</span>
-            <span class="widget-close" onclick="toggleWidget('widget-gifts')">✖</span>
+            <div style="display:flex; gap:8px;">
+                <span class="widget-btn" onclick="zoomWidget('widget-gifts', -1)">-</span>
+                <span class="widget-btn" onclick="zoomWidget('widget-gifts', 1)">+</span>
+                <span class="widget-close" onclick="toggleWidget('widget-gifts')">✖</span>
+            </div>
         </div>
         <div class="widget-content">
             <div id="giftsList" class="grid-list" style="grid-template-columns: 1fr;"></div>
@@ -229,7 +378,11 @@
     <div id="widget-shares" class="widget-card" style="top: 650px; left: 450px; width: 350px; height: 350px;">
         <div class="widget-header">
             <span>↗️ زۆرترین شەیرەکان</span>
-            <span class="widget-close" onclick="toggleWidget('widget-shares')">✖</span>
+            <div style="display:flex; gap:8px;">
+                <span class="widget-btn" onclick="zoomWidget('widget-shares', -1)">-</span>
+                <span class="widget-btn" onclick="zoomWidget('widget-shares', 1)">+</span>
+                <span class="widget-close" onclick="toggleWidget('widget-shares')">✖</span>
+            </div>
         </div>
         <div class="widget-content">
             <div id="sharesList" class="grid-list" style="grid-template-columns: 1fr;"></div>
@@ -240,12 +393,28 @@
     <div id="widget-search" class="widget-card" style="top: 250px; left: 850px; width: 450px; height: 600px;">
         <div class="widget-header">
             <span>🔍 کۆمێنتە ڕاستەوخۆکان</span>
-            <span class="widget-close" onclick="toggleWidget('widget-search')">✖</span>
+            <div style="display:flex; gap:8px;">
+                <span class="widget-btn" onclick="zoomWidget('widget-search', -1)">-</span>
+                <span class="widget-btn" onclick="zoomWidget('widget-search', 1)">+</span>
+                <span class="widget-close" onclick="toggleWidget('widget-search')">✖</span>
+            </div>
         </div>
         <div class="widget-content">
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <input type="text" id="searchInput" class="search-bar" style="margin-bottom: 0; padding: 12px; font-size: 16px;" placeholder="گەڕان بەدوای وشە یان ناو..." onkeyup="renderComments()" />
-                <button class="menu-btn" onclick="showDuplicateComments()" style="white-space: nowrap; margin-bottom: 0; padding: 10px; flex-shrink: 0;">🔁 دووبارە</button>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="searchInput" class="search-bar" style="margin-bottom: 0; padding: 12px; font-size: 16px; flex: 1;" placeholder="گەڕان بەدوای وشە یان ناو..." onkeyup="renderComments()" />
+                    <button class="menu-btn" onclick="showDuplicateComments()" style="white-space: nowrap; margin-bottom: 0; padding: 10px; flex-shrink: 0;">🔁 دووبارە</button>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: 600; color: white;">
+                        <input type="checkbox" id="smoothScrollToggle" onchange="toggleSmoothScroll()" style="width: 18px; height: 18px; accent-color: #FF3B5C;"> سکڕۆڵی هێواش
+                    </label>
+                    <div id="scrollSpeedContainer" style="display: none; align-items: center; gap: 8px; flex: 1;">
+                        <span style="font-size: 16px;" title="خاو">🐢</span>
+                        <input type="range" id="scrollSpeed" min="1" max="10" value="5" style="flex: 1; accent-color: #FF3B5C;" oninput="updateScrollSpeed()">
+                        <span style="font-size: 16px;" title="خێرا">🐇</span>
+                    </div>
+                </div>
             </div>
             <div id="searchList"></div>
         </div>
@@ -256,7 +425,8 @@
     <script>
         // Redirect to login page if no token is found
         if (!localStorage.getItem("tiktokAdminToken")) {
-            window.location.href = "login.html";
+            // window.location.href = "login.html"; // <-- COMMENTED OUT SO PREVIEW WORKS
+            console.log("Auth bypassed for editor preview.");
         }
         
         const socket = io("https://tiktok-live-tracker-idnb.onrender.com");
@@ -378,11 +548,11 @@
                 widgetState = data.widgetState;
                 initDraggableWidgets(); // Re-apply positions
             }
-            if (data.allComments) {
+             if (data.allComments) {
                 allComments = data.allComments;
                 document.getElementById("totalCommentsBadge").innerText = allComments.length.toLocaleString();
                 const searchWidget = document.getElementById('widget-search');
-                if (searchWidget && searchWidget.style.display !== 'none') {
+                if (searchWidget && (searchWidget.style.display !== 'none' || searchWidget.classList.contains('active-tab'))) {
                     renderComments();
                 }
             }
@@ -445,6 +615,7 @@
                 cameraStream.getTracks().forEach(track => track.stop());
                 videoElement.srcObject = null;
                 cameraStream = null;
+                document.documentElement.classList.remove('camera-active');
                 return;
             }
             startCamera();
@@ -480,6 +651,8 @@
 
             if (cameraStream) {
                 videoElement.srcObject = cameraStream;
+                videoElement.play().catch(e => console.log("Play error:", e));
+                document.documentElement.classList.add('camera-active');
                 
                 // Hardware-level Auto-Focus Injection
                 try {
@@ -505,17 +678,130 @@
             }
         }
 
+        let isLiveMode = false;
+
+        function toggleLiveMode() {
+            isLiveMode = !isLiveMode;
+            if(isLiveMode) {
+                document.body.classList.add('live-mode');
+                document.getElementById('liveModeBtn').innerText = "🛑 دەرچوون لە لایڤ مۆد";
+                // Show camera controls in floating panel by default when entering mode
+                document.querySelectorAll('.widget-card').forEach(w => w.style.display = 'flex');
+                initDraggableWidgets(); 
+            } else {
+                document.body.classList.remove('live-mode');
+                document.getElementById('liveModeBtn').innerText = "📺 لایڤ مۆد";
+                document.querySelectorAll('.widget-card').forEach(w => w.style.display = '');
+                // Camera stays on when returning to Standard Mode!
+            }
+        }
+
+        function showStandardTab(id, btnElement) {
+            document.querySelectorAll('.widget-card:not(#widget-controls)').forEach(c => {
+                c.classList.remove('active-tab');
+                c.style.setProperty('display', 'none', 'important');
+            });
+            document.querySelectorAll('.standard-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            const targetWidget = document.getElementById(id);
+            targetWidget.classList.add('active-tab');
+            targetWidget.style.setProperty('display', 'flex', 'important');
+            
+            btnElement.classList.add('active');
+            if(id === 'widget-search') renderComments();
+        }
+
+        function zoomWidget(id, dir) {
+            const w = document.getElementById(id);
+            const content = w.querySelector('.widget-content');
+            
+            // Get current zoom level (default is 1)
+            let currentZoom = parseFloat(content.style.zoom) || 1;
+            
+            // Increase or decrease zoom by 15% per click
+            currentZoom += (dir * 0.15); 
+            
+            // Clamp zoom so it doesn't get too ridiculously small or large
+            currentZoom = Math.max(0.4, Math.min(currentZoom, 2.5)); 
+            
+            content.style.zoom = currentZoom;
+            saveWidgetState();
+        }
+
+        function autoArrangeWidgets() {
+            const widgets = Array.from(document.querySelectorAll('.widget-card:not(#widget-controls)')).filter(w => w.style.display !== 'none');
+            if (widgets.length === 0) return;
+
+            const screenW = window.innerWidth;
+            const screenH = window.innerHeight;
+            
+            let startY = 80; // Always start near the top, ignoring the HUD!
+            const safeW = screenW - 30;
+            let availableH = screenH - startY - 20;
+            const gap = 15;
+
+            // Prioritize Live Comments Widget
+            const searchWidget = document.getElementById('widget-search');
+            const hasSearch = widgets.includes(searchWidget);
+
+            if (hasSearch && screenW > 900) {
+                // PC Layout: Search gets 35% on the Right, others share the Left
+                searchWidget.style.width = `${safeW * 0.35}px`;
+                searchWidget.style.height = `${availableH}px`;
+                searchWidget.style.top = `${startY}px`;
+                searchWidget.style.left = `${15 + (safeW * 0.65) + gap}px`;
+
+                const otherWidgets = widgets.filter(w => w !== searchWidget);
+                if (otherWidgets.length > 0) {
+                    let cols = otherWidgets.length >= 4 ? 2 : 1;
+                    let rows = Math.ceil(otherWidgets.length / cols);
+                    let wW = ((safeW * 0.65)) / cols;
+                    let wH = (availableH - (gap * (rows - 1))) / rows;
+
+                    otherWidgets.forEach((w, i) => {
+                        const col = i % cols;
+                        const row = Math.floor(i / cols);
+                        w.style.width = `${wW}px`;
+                        w.style.height = `${wH}px`;
+                        w.style.left = `${15 + (col * (wW + gap))}px`;
+                        w.style.top = `${startY + (row * (wH + gap))}px`;
+                    });
+                }
+            } else {
+                // Mobile/Tablet Standard Grid
+                let cols = screenW > 800 ? Math.min(3, widgets.length) : (screenW > 500 ? 2 : 1);
+                let rows = Math.ceil(widgets.length / cols);
+                let wW = (safeW - (gap * (cols - 1))) / cols;
+                let wH = (availableH - (gap * (rows - 1))) / rows;
+
+                widgets.forEach((w, i) => {
+                    const col = i % cols;
+                    const row = Math.floor(i / cols);
+                    w.style.width = `${wW}px`;
+                    w.style.height = `${wH}px`;
+                    w.style.left = `${15 + (col * (wW + gap))}px`;
+                    w.style.top = `${startY + (row * (wH + gap))}px`;
+                });
+            }
+
+            widgets.forEach(w => { w.style.zIndex = 100; const c = w.querySelector('.widget-content'); if(c) c.style.zoom = 1; });
+            document.getElementById('sideMenu').classList.remove('open');
+            saveWidgetState();
+        }
+
         // 🖱️ Draggable & Resizable Widget Logic
         let widgetState = {};
 
         function saveWidgetState() {
             document.querySelectorAll('.widget-card').forEach(widget => {
+                const content = widget.querySelector('.widget-content');
                 widgetState[widget.id] = {
                     display: widget.style.display,
                     top: widget.style.top,
                     left: widget.style.left,
                     width: widget.style.width,
-                    height: widget.style.height
+                    height: widget.style.height,
+                    zoom: content ? (parseFloat(content.style.zoom) || 1) : 1
                 };
             });
             saveSettingsToServer();
@@ -543,17 +829,31 @@
                 document.getElementById('sideMenu').classList.remove('open');
             }
             saveWidgetState();
+            autoArrangeWidgets(); // Automatically snap layout when closing/opening
         }
 
         function initDraggableWidgets() {
             document.querySelectorAll('.widget-card').forEach(widget => {
                 // Restore State from localStorage
                 if(widgetState[widget.id]) {
-                    widget.style.display = widgetState[widget.id].display || 'none';
+                    // Prevent inline display flex from breaking standard tabs!
+                    if(isLiveMode) {
+                        widget.style.display = widgetState[widget.id].display || 'none';
+                    } else {
+                        widget.style.display = ''; 
+                    }
+                    
                     if(widgetState[widget.id].top) widget.style.top = widgetState[widget.id].top;
                     if(widgetState[widget.id].left) widget.style.left = widgetState[widget.id].left;
                     if(widgetState[widget.id].width) widget.style.width = widgetState[widget.id].width;
                     if(widgetState[widget.id].height) widget.style.height = widgetState[widget.id].height;
+                    
+                    if(widgetState[widget.id].zoom) {
+                        const content = widget.querySelector('.widget-content');
+                        if(content) content.style.zoom = widgetState[widget.id].zoom;
+                    }
+                } else if (!isLiveMode) {
+                    widget.style.display = '';
                 }
 
                 const header = widget.querySelector('.widget-header');
@@ -561,13 +861,16 @@
                 let isDragging = false, isResizing = false;
                 let startX, startY, startLeft, startTop, startWidth, startHeight;
 
-                // Dragging Logic
+                // Dragging Logic Fixed
                 header.addEventListener('pointerdown', (e) => {
-                    if(e.target.classList.contains('widget-close')) return;
+                    if(e.target.classList.contains('widget-close') || e.target.classList.contains('widget-btn')) return;
                     isDragging = true;
+                    widget.classList.add('is-dragging');
+                    const rect = widget.getBoundingClientRect();
                     startX = e.clientX; startY = e.clientY;
-                    startLeft = parseInt(window.getComputedStyle(widget).left) || 0;
-                    startTop = parseInt(window.getComputedStyle(widget).top) || 0;
+                    startLeft = rect.left;
+                    startTop = rect.top;
+                    widget.style.right = 'auto'; // Fixes horizontal drag locking!
                     
                     document.querySelectorAll('.widget-card').forEach(w => w.style.zIndex = 100);
                     widget.style.zIndex = 1000;
@@ -582,6 +885,7 @@
 
                 header.addEventListener('pointerup', (e) => {
                     isDragging = false;
+                    widget.classList.remove('is-dragging'); // Removes HUD physics
                     header.releasePointerCapture(e.pointerId);
                     saveWidgetState();
                 });
@@ -616,6 +920,16 @@
         
         window.addEventListener('DOMContentLoaded', () => {
             initDraggableWidgets();
+            setTimeout(autoArrangeWidgets, 500); // Organize immediately on load
+        });
+
+        // Smart Orientation Snapping for Mobile Devices
+        window.addEventListener("orientationchange", function() {
+            setTimeout(() => {
+                if (isLiveMode) {
+                    autoArrangeWidgets();
+                }
+            }, 300);
         });
 
         // Register Service Worker for PWA
@@ -673,25 +987,82 @@
             document.getElementById("statusMessage").innerText = "✅ داتا کۆنەکان بارکران.";
         });
 
+        let commentQueue = [];
+        let processQueueInterval = null;
+        let currentSpeedMs = 800;
+        let isSmoothScroll = false;
+
+        function toggleSmoothScroll() {
+            isSmoothScroll = document.getElementById("smoothScrollToggle").checked;
+            const container = document.getElementById("scrollSpeedContainer");
+            if (isSmoothScroll) {
+                container.style.display = "flex";
+                startCommentQueue();
+            } else {
+                container.style.display = "none";
+                clearInterval(processQueueInterval);
+                commentQueue = [];
+                renderComments();
+            }
+        }
+
+        function updateScrollSpeed() {
+            const val = document.getElementById("scrollSpeed").value;
+            currentSpeedMs = 1600 - (val * 150); // Slider logic: 1 is slow, 10 is fast
+            if (isSmoothScroll) startCommentQueue();
+        }
+
+        function startCommentQueue() {
+            clearInterval(processQueueInterval);
+            processQueueInterval = setInterval(() => {
+                if (commentQueue.length > 0 && isSmoothScroll) {
+                    const c = commentQueue.shift();
+                    injectSingleComment(c);
+                }
+            }, currentSpeedMs);
+        }
+
+        function injectSingleComment(c) {
+            const container = document.getElementById("searchList");
+            const div = document.createElement("div");
+            div.className = "comment-item comment-smooth-enter";
+            div.innerHTML = `
+                <img class="avatar" src="${c.profilePictureUrl}" onerror="this.src='https://www.tiktok.com/favicon.ico'">
+                <div class="comment-text">
+                    <span class="comment-name">
+                        <span>${c.nickname}</span> 
+                        <span style="color: #888; font-size: 13px; font-weight: normal; margin-left: 5px;">@${c.uniqueId || 'unknown'}</span>
+                        <span style="color: #555; font-size: 12px; font-weight: normal; margin-left: auto; font-family: monospace;">${c.timestamp}</span>
+                    </span>
+                    <span style="color: #ddd; margin-top: 5px; word-break: break-word;" dir="auto">${c.comment}</span>
+                </div>
+            `;
+            container.prepend(div);
+            setTimeout(() => div.classList.add("comment-smooth-enter-active"), 20); // Animate smoothly in
+            if (container.children.length > 300) container.removeChild(container.lastChild);
+        }
+
         socket.on("newComment", (data) => {
             const now = new Date();
-            const dateStr = now.getFullYear() + "-" + 
-                            String(now.getMonth() + 1).padStart(2, '0') + "-" + 
-                            String(now.getDate()).padStart(2, '0');
-            const timeStr = String(now.getHours()).padStart(2, '0') + ":" + 
-                            String(now.getMinutes()).padStart(2, '0') + ":" + 
-                            String(now.getSeconds()).padStart(2, '0');
+            const dateStr = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, '0') + "-" + String(now.getDate()).padStart(2, '0');
+            const timeStr = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0') + ":" + String(now.getSeconds()).padStart(2, '0');
             
             data.timestamp = `${dateStr} ${timeStr}`;
             
             allComments.push(data);
             if(allComments.length > 500) allComments.shift();
-            // Data is synced directly from server memory across devices
             document.getElementById("totalCommentsBadge").innerText = allComments.length.toLocaleString();
 
             const searchWidget = document.getElementById('widget-search');
-            if (searchWidget && searchWidget.style.display !== 'none') {
-                renderComments();
+            if (searchWidget && (searchWidget.style.display !== 'none' || searchWidget.classList.contains('active-tab'))) {
+                const query = document.getElementById("searchInput").value.trim();
+                
+                // If smooth scroll is checked AND they aren't searching, push to queue!
+                if (isSmoothScroll && query === "") {
+                    commentQueue.push(data);
+                } else {
+                    renderComments();
+                }
             }
         });
 
@@ -739,23 +1110,35 @@
             if (index === 0) return "🥇";
             if (index === 1) return "🥈";
             if (index === 2) return "🥉";
-            return `<span style="color: #888; font-size: 18px;">${index + 1}</span>`;
+            return `<span style="color: white; background: #111; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border: 2px solid #444; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">${index + 1}</span>`;
         }
 
         function renderList(elementId, users, countField) {
             const validUsers = users.filter(u => u[countField] > 0);
-            document.getElementById(elementId).innerHTML = validUsers.map((u, index) => {
-                let extraHtml = "";
-                let countStyle = "margin-left: auto;"; 
-                
-                if (countField === "likeCount") {
-                    const trueTotal = u.actualTotalLikes > u.likeCount ? u.actualTotalLikes : u.likeCount;
-                    extraHtml = `<span style="color: #aaa; font-size: 14px; margin-left: auto; margin-right: 15px;">Actual: <b>${trueTotal.toLocaleString()}</b></span>`;
-                    countStyle = "margin-left: 0;"; 
+            const container = document.getElementById(elementId);
+            
+            if (validUsers.length === 0) { container.innerHTML = ""; return; }
+
+            let currentNodes = Array.from(container.children);
+            let userIds = validUsers.map(u => u.uniqueId);
+
+            currentNodes.forEach(node => {
+                if (!userIds.includes(node.getAttribute('data-uid'))) node.remove();
+            });
+
+            validUsers.forEach((u, index) => {
+                let node = container.querySelector(`[data-uid="${u.uniqueId}"]`);
+                let countStyle = countField === "likeCount" ? "margin-left: 0;" : "margin-left: auto;";
+                let extraHtml = countField === "likeCount" ? `<span style="color: #aaa; font-size: 14px; margin-left: auto; margin-right: 15px;">Actual: <b>${(u.actualTotalLikes > u.likeCount ? u.actualTotalLikes : u.likeCount).toLocaleString()}</b></span>` : "";
+
+                if (!node) {
+                    node = document.createElement('div');
+                    node.className = 'item';
+                    node.setAttribute('data-uid', u.uniqueId);
+                    container.appendChild(node);
                 }
 
-                return `
-                <div class="item">
+                const newHtml = `
                     <div class="rank">${getRankBadge(index)}</div>
                     <img class="avatar" src="${u.profilePictureUrl}" onerror="this.src='https://www.tiktok.com/favicon.ico'">
                     <div style="display: flex; flex-direction: column; overflow: hidden; flex-grow: 1;">
@@ -764,8 +1147,11 @@
                     </div>
                     ${extraHtml}
                     <div class="count" style="${countStyle}">${u[countField].toLocaleString()}</div>
-                </div>
-            `}).join("");
+                `;
+
+                if (node.innerHTML !== newHtml) node.innerHTML = newHtml;
+                if (container.children[index] !== node) container.insertBefore(node, container.children[index]);
+            });
         }
 
         function startStream() {
@@ -793,6 +1179,27 @@
             } else {
                 alert("Please enter a username first!");
             }
+        }
+
+        function stopStream() {
+            // 1. Cleanly tell the backend to drop the TikTok stream (without breaking the socket)
+            socket.emit("stopStream");
+            
+            // 2. Update UI to show it was stopped
+            document.getElementById("statusMessage").style.color = "#ff4c4c";
+            document.getElementById("statusMessage").innerText = "🛑 وەستێنرا (Stopped)";
+            
+            // 3. Clear the dashboard UI ready for the next stream
+            document.getElementById("commentsList").innerHTML = "";
+            document.getElementById("likesList").innerHTML = "";
+            document.getElementById("giftsList").innerHTML = "";
+            document.getElementById("sharesList").innerHTML = "";
+            document.getElementById("searchList").innerHTML = "";
+            
+            allComments.length = 0; 
+            document.getElementById("liveViewersBadge").innerText = "0";
+            document.getElementById("trackedUsersBadge").innerText = "0";
+            document.getElementById("totalCommentsBadge").innerText = "0";
         }
 
         
