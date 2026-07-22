@@ -2004,6 +2004,13 @@
         // --- ESCAPE THE MAZE GAME LOGIC ---
         let currentMazeGameData = null;
 
+        function selectAndStartMaze(uniqueId) {
+            socket.emit('selectMazePlayer', uniqueId);
+            setTimeout(() => {
+                startMazeGame();
+            }, 100);
+        }
+
         function startMazeGame() {
             const settings = {
                 width: parseInt(document.getElementById('mzLevel').value),
@@ -2044,7 +2051,12 @@
                 regScreen.style.display = 'flex';
                 activeArea.style.display = 'none';
                 document.getElementById('mzWaitCount').innerText = mGame.registeredPlayers.length;
-                document.getElementById('mzWaitList').innerHTML = mGame.registeredPlayers.map(p => `<div>@${p.nickname}</div>`).join('') || '<span style="color:#666">چاوەڕێی کۆمێنتەکان...</span>';
+                
+                document.getElementById('mzWaitList').innerHTML = mGame.registeredPlayers.map(p => 
+                    `<div onclick="selectAndStartMaze('${p.uniqueId}')" style="background: rgba(65, 105, 225, 0.3); padding: 8px; border-radius: 5px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; text-align: center; font-weight: bold; color: white;" onmouseover="this.style.borderColor='#4169E1'" onmouseout="this.style.borderColor='transparent'">
+                        🎯 یاریکردن: @${p.nickname}
+                    </div>`
+                ).join('') || '<span style="color:#666">چاوەڕێی کۆمێنتەکان...</span>';
                 
                 const select = document.getElementById('mzPlayerSelect');
                 const currentVal = select.value;
