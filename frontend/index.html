@@ -510,8 +510,7 @@
             socket.emit("saveUserSettings", { 
                 username: getUsernameFromToken(), 
                 searchHistory: searchHistory, 
-                widgetState: widgetState,
-                activeStreamTarget: sessionStorage.getItem("tiktokLiveActiveUser")
+                widgetState: widgetState
             });
         }
 
@@ -553,15 +552,9 @@
         renderHistory();
 
         socket.on("connect", () => {
-            const savedUser = sessionStorage.getItem("tiktokLiveActiveUser");
-            if (savedUser) {
-                document.getElementById("statusMessage").innerText = `✅ بەردەوامە لە پەیوەندیکردن بە: @${savedUser}`;
-                socket.emit("setUniqueId", savedUser); // Rejoin the stream room
-            } else {
-                document.getElementById("statusMessage").innerText = "🟢 ئامادەیە بۆ دەستپێکردن";
-            }
+            document.getElementById("statusMessage").innerText = "🟢 ئامادەیە بۆ دەستپێکردن";
             document.getElementById("statusMessage").style.color = "#4cff4c";
-            socket.emit("requestInitialState", getUsernameFromToken(), savedUser);
+            socket.emit("requestInitialState", getUsernameFromToken());
         });
 
         socket.on("initialState", (data) => {
@@ -573,24 +566,35 @@
                 widgetState = data.widgetState;
                 initDraggableWidgets(); // Re-apply positions
             }
-             if (data.allComments) {
-                allComments = data.allComments;
-                document.getElementById("totalCommentsBadge").innerText = allComments.length.toLocaleString();
-                renderComments();
-            }
-            if (data.leaderboard) {
-                renderLeaderboardData(data.leaderboard);
-            }
-            if (data.activeStreamTarget) {
-                sessionStorage.setItem("tiktokLiveActiveUser", data.activeStreamTarget);
-                document.getElementById("usernameInput").value = data.activeStreamTarget;
-            }
-            if (data.isActive) {
-                const username = data.activeStreamTarget || sessionStorage.getItem("tiktokLiveActiveUser");
-                document.getElementById("statusMessage").innerText = `✅ پەیوەندی سەرکەوتوو بوو! (Connected) - @${username}`;
+            
+            if (data.isActive && data.currentTrackedUsername) {
+                document.getElementById("usernameInput").value = data.currentTrackedUsername;
+                document.getElementById("statusMessage").innerText = `✅ پەیوەندی سەرکەوتوو بوو! (Connected) - @${data.currentTrackedUsername}`;
                 document.getElementById("statusMessage").style.color = "#00FF00";
-            } else if (sessionStorage.getItem("tiktokLiveActiveUser")) {
-                sessionStorage.removeItem("tiktokLiveActiveUser");
+                
+                if (data.allComments) {
+                    allComments = data.allComments;
+                    document.getElementById("totalCommentsBadge").innerText = allComments.length.toLocaleString();
+                    renderComments();
+                }
+                if (data.leaderboard) {
+                    renderLeaderboardData(data.leaderboard);
+                }
+                if (data.pollKeywords) {
+                    const sorted = Object.keys(data.pollCounts)
+                        .sort((a, b) => data.pollCounts[b] - data.pollCounts[a])
+                        .slice(0, 3)
+                        .map(k => ({ keyword: k, count: data.pollCounts[k] }));
+                    // simulate pollUpdate
+                    const container = document.getElementById("pollResults");
+                    if (container && sorted.length > 0) {
+                         container.innerHTML = sorted.map((p, index) => {
+                             const rank = index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉";
+                             return `<div class="poll-item">${rank} ${p.keyword.toUpperCase()} <span>${p.count}</span></div>`;
+                         }).join("");
+                    }
+                }
+            } else {
                 document.getElementById("statusMessage").innerText = "چاوەڕێی دەستپێکردن...";
                 document.getElementById("statusMessage").style.color = "#aaa";
             }
@@ -1011,19 +1015,7 @@
                 }
             });
             
-            // Recover from sessionStorage
-            const savedComments = sessionStorage.getItem("tiktokLiveComments");
-            if (savedComments) {
-                try {
-                    allComments = JSON.parse(savedComments);
-                    document.getElementById("totalCommentsBadge").innerText = allComments.length.toLocaleString();
-                    renderComments();
-                } catch(e) {}
-            }
-            const savedUser = sessionStorage.getItem("tiktokLiveActiveUser");
-            if (savedUser) {
-                document.getElementById("usernameInput").value = savedUser;
-            }
+            // No need to recover from sessionStorage anymore since the backend sends initialState
             if (isSmoothScroll) startCommentQueue();
             
             // Mobile Swipe Sync
@@ -1219,9 +1211,6 @@
             allComments.push(data);
             if(allComments.length > 500) allComments.shift();
             
-            sessionStorage.setItem("tiktokLiveComments", JSON.stringify(allComments));
-            sessionStorage.setItem("tiktokLiveActiveUser", document.getElementById("usernameInput").value);
-            
             document.getElementById("totalCommentsBadge").innerText = allComments.length.toLocaleString();
 
             const searchWidget = document.getElementById('widget-search');
@@ -1398,7 +1387,6 @@
                 document.getElementById("trackedUsersBadge").innerText = "0";
                 document.getElementById("totalCommentsBadge").innerText = "0";
                 
-                sessionStorage.setItem("tiktokLiveActiveUser", username);
                 saveSettingsToServer(); // Sync cross-device state to cloud
                 socket.emit("startStream", username);
             } else {

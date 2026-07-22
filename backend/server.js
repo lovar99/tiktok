@@ -18,12 +18,19 @@ app.use(express.json());
 const JWT_SECRET = process.env.JWT_SECRET || "tiktok_super_secret_key_2024_secure";
 const port = process.env.PORT || 4000;
 
-// Active live users (Admin panel tracking)
+// Active site visitors tracking (Admin panel tracking)
 let activeSiteVisitors = {};
 
-// Active streams map: key = tiktokUsername, value = stream state
-// Structure: { connection, stats, comments, leaderboard, pollKeywords, pollCounts, timeout, connectedSockets: Set }
-const activeStreams = new Map();
+// --- GLOBAL STREAM STATE ---
+let tiktokLiveConnection = null;
+let currentTrackedUsername = null;
+let streamStats = {};
+let streamComments = [];
+let streamLeaderboard = null;
+let pollKeywords = [];
+let pollCounts = {};
+let streamWatchdog = null;
+let streamLastActivity = Date.now();
 
 // CLOUDFLARE D1 DATABASE CONFIGURATION
 const D1_API_URL = "https://api.cloudflare.com/client/v4/accounts/680373c66f54cff8c03c582df23f66f9/d1/database/c989670d-f06b-4ca0-9f5e-473d2ff655f4/query";
@@ -85,94 +92,83 @@ async function saveStreamToD1(username, stats) {
         const sessionData = JSON.stringify(stats);
         await queryD1(`INSERT INTO sessions (username, session_data) VALUES (?, ?)`, [username, sessionData]);
         console.log(`Auto-saved session for @${username}`);
-        io.to(username).emit("streamStatus", { status: "success", message: "✅ دانیشتنەکە پاشەکەوت کرا لە بنکەی دراوە! (Saved to DB)" });
+        io.emit("streamStatus", { status: "success", message: "✅ دانیشتنەکە پاشەکەوت کرا لە بنکەی دراوە! (Saved to DB)" });
     } catch (e) {
         console.error("Failed to auto-save stream", e);
     }
 }
 
+function emitPollUpdate() {
+    const sorted = Object.keys(pollCounts)
+        .sort((a, b) => pollCounts[b] - pollCounts[a])
+        .slice(0, 3)
+        .map(k => ({ keyword: k, count: pollCounts[k] }));
+    io.emit("pollUpdate", sorted);
+}
+
+function getUser(data) {
+    const uid = data.uniqueId;
+    if (!streamStats[uid]) {
+        streamStats[uid] = { 
+            uid: uid, 
+            name: data.nickname || "Unknown", 
+            avatar: data.profilePictureUrl || "https://www.tiktok.com/favicon.ico", 
+            commentCount: 0, 
+            likeCount: 0, 
+            actualTotalLikes: 0, 
+            giftCount: 0, 
+            shareCount: 0 
+        };
+    }
+    return streamStats[uid];
+}
+
+function emitUpdate() {
+    streamLastActivity = Date.now();
+    const activeUsersCount = Object.keys(streamStats).length;
+    const sortedUsers = Object.values(streamStats)
+        .sort((a, b) => (b.giftCount * 1000 + b.commentCount * 10 + b.actualTotalLikes) - (a.giftCount * 1000 + a.commentCount * 10 + a.actualTotalLikes))
+        .slice(0, 100);
+    
+    streamLeaderboard = { totalUniqueUsers: activeUsersCount, topUsers: sortedUsers };
+    io.emit("leaderboardUpdate", streamLeaderboard);
+}
+
 // --- SOCKET.IO LIVE TRACKING LOGIC ---
 io.on("connection", (socket) => {
     activeSiteVisitors[socket.id] = { connectedAt: new Date().toISOString() };
-    socket.activeStreamTarget = null; // Which stream is this socket watching?
-
-    function getStream() {
-        if (!socket.activeStreamTarget) return null;
-        return activeStreams.get(socket.activeStreamTarget);
-    }
-
-    function emitPollUpdate(stream, target) {
-        if (!stream) return;
-        const sorted = Object.keys(stream.pollCounts)
-            .sort((a, b) => stream.pollCounts[b] - stream.pollCounts[a])
-            .slice(0, 3)
-            .map(k => ({ keyword: k, count: stream.pollCounts[k] }));
-        io.to(target).emit("pollUpdate", sorted);
-    }
-
-    function getUser(stream, data) {
-        const uid = data.uniqueId;
-        if (!stream.stats[uid]) {
-            stream.stats[uid] = { 
-                uid: uid, 
-                name: data.nickname || "Unknown", 
-                avatar: data.profilePictureUrl || "https://www.tiktok.com/favicon.ico", 
-                commentCount: 0, 
-                likeCount: 0, 
-                actualTotalLikes: 0, 
-                giftCount: 0, 
-                shareCount: 0 
-            };
-        }
-        return stream.stats[uid];
-    }
-
-    function emitUpdate(stream, target) {
-        if (!stream) return;
-        stream.lastActivity = Date.now();
-        const activeUsersCount = Object.keys(stream.stats).length;
-        const sortedUsers = Object.values(stream.stats)
-            .sort((a, b) => (b.giftCount * 1000 + b.commentCount * 10 + b.actualTotalLikes) - (a.giftCount * 1000 + a.commentCount * 10 + a.actualTotalLikes))
-            .slice(0, 100);
-        
-        stream.leaderboard = { totalUniqueUsers: activeUsersCount, topUsers: sortedUsers };
-        io.to(target).emit("leaderboardUpdate", stream.leaderboard);
-    }
 
     socket.on("setPollKeywords", (keywords) => {
-        const stream = getStream();
-        if (!stream) return;
-        stream.pollKeywords = keywords.map(k => String(k).trim().toLowerCase());
-        stream.pollKeywords.forEach(k => {
-            if (stream.pollCounts[k] === undefined) stream.pollCounts[k] = 0;
+        pollKeywords = keywords.map(k => String(k).trim().toLowerCase());
+        pollKeywords.forEach(k => {
+            if (pollCounts[k] === undefined) pollCounts[k] = 0;
         });
-        emitPollUpdate(stream, socket.activeStreamTarget);
+        emitPollUpdate();
     });
 
     socket.on("getAllUsers", () => {
-        const stream = getStream();
-        if (stream) socket.emit("allUsersData", Object.values(stream.stats));
+        if (tiktokLiveConnection) {
+            socket.emit("allUsersData", Object.values(streamStats));
+        }
     });
 
-    socket.on("requestInitialState", async (adminUser, targetUser) => {
-        if (targetUser && targetUser !== "unknown") {
-            socket.activeStreamTarget = targetUser;
-            socket.join(targetUser); // Connects them back to the live room so they get stream updates!
-        }
-
+    socket.on("requestInitialState", async (adminUser) => {
         const syncData = {
             allComments: [],
             leaderboard: null,
             isActive: false,
-            activeStreamTarget: targetUser && targetUser !== "unknown" ? targetUser : null
+            currentTrackedUsername: null,
+            pollKeywords: [],
+            pollCounts: {}
         };
         
-        const stream = getStream();
-        if (stream) {
+        if (tiktokLiveConnection) {
             syncData.isActive = true;
-            syncData.allComments = stream.comments;
-            syncData.leaderboard = stream.leaderboard;
-            stream.connectedSockets.add(socket.id); // FIX: Ensure socket is tracked so it doesn't get cleaned up
+            syncData.allComments = streamComments;
+            syncData.leaderboard = streamLeaderboard;
+            syncData.currentTrackedUsername = currentTrackedUsername;
+            syncData.pollKeywords = pollKeywords;
+            syncData.pollCounts = pollCounts;
         }
 
         if (adminUser && adminUser !== "unknown") {
@@ -183,20 +179,6 @@ io.on("connection", (socket) => {
                     const settings = JSON.parse(row.settings_data);
                     syncData.searchHistory = settings.searchHistory;
                     syncData.widgetState = settings.widgetState;
-                    
-                    if (!targetUser && settings.activeStreamTarget) {
-                        targetUser = settings.activeStreamTarget;
-                        socket.activeStreamTarget = targetUser;
-                        socket.join(targetUser); // Join the room recovered from DB!
-                        syncData.activeStreamTarget = targetUser; // Send back to client
-                        
-                        const recoveredStream = activeStreams.get(targetUser);
-                        if (recoveredStream) {
-                            syncData.isActive = true;
-                            syncData.allComments = recoveredStream.comments;
-                            syncData.leaderboard = recoveredStream.leaderboard;
-                        }
-                    }
                 } catch(e) {}
             }
         }
@@ -208,7 +190,7 @@ io.on("connection", (socket) => {
         const settingsJson = JSON.stringify({
             searchHistory: data.searchHistory,
             widgetState: data.widgetState,
-            activeStreamTarget: data.activeStreamTarget
+            activeStreamTarget: data.activeStreamTarget // Keep for legacy client support
         });
         
         await queryD1(`
@@ -219,9 +201,9 @@ io.on("connection", (socket) => {
     });
 
     socket.on("saveSessionToD1", async (username) => {
-        const stream = activeStreams.get(username);
-        if (!stream) return;
-        await saveStreamToD1(username, stream.stats);
+        if (tiktokLiveConnection && currentTrackedUsername === username) {
+            await saveStreamToD1(username, streamStats);
+        }
     });
 
     socket.on("getPastSessions", async () => {
@@ -285,181 +267,150 @@ io.on("connection", (socket) => {
     });
 
     socket.on("stopStream", () => {
-        const username = socket.activeStreamTarget;
-        if (!username) return;
+        if (!tiktokLiveConnection) return;
         
-        const stream = activeStreams.get(username);
-        if (stream) {
-            saveStreamToD1(username, stream.stats); // Auto-save!
-            if (stream.connection) {
-                try { stream.connection.disconnect(); } catch(e) {}
-            }
-            if (stream.timeout) clearTimeout(stream.timeout);
-            if (stream.watchdog) clearInterval(stream.watchdog);
-            activeStreams.delete(username);
-        }
-        socket.leave(username);
-        socket.activeStreamTarget = null;
-    });
-
-    socket.on("setUniqueId", (username) => {
-        // Just join the room silently to resume events if refreshing
-        socket.join(username);
-        socket.activeStreamTarget = username;
+        saveStreamToD1(currentTrackedUsername, streamStats); // Auto-save!
+        try { tiktokLiveConnection.disconnect(); } catch(e) {}
         
-        const stream = activeStreams.get(username);
-        if (stream) {
-            stream.connectedSockets.add(socket.id);
-            if (stream.timeout) {
-                clearTimeout(stream.timeout);
-                stream.timeout = null;
-            }
-            socket.emit("streamStatus", { status: "success", message: `✅ دەستپێکردنەوە سەرکەوتوو بوو! @${username}` });
-        }
+        if (streamWatchdog) clearInterval(streamWatchdog);
+        
+        tiktokLiveConnection = null;
+        currentTrackedUsername = null;
+        streamStats = {};
+        streamComments = [];
+        streamLeaderboard = null;
+        pollKeywords = [];
+        pollCounts = {};
     });
 
     socket.on("startStream", (username) => {
-        if (socket.activeStreamTarget && socket.activeStreamTarget !== username) {
-            socket.leave(socket.activeStreamTarget);
-        }
-
-        socket.join(username);
-        socket.activeStreamTarget = username;
-
-        let stream = activeStreams.get(username);
-        if (stream) {
-            // Stream already running! Just join it.
-            stream.connectedSockets.add(socket.id);
-            if (stream.timeout) {
-                clearTimeout(stream.timeout);
-                stream.timeout = null;
-            }
+        if (tiktokLiveConnection && currentTrackedUsername === username) {
+            // Stream already running! Just notify the client it's good.
             socket.emit("streamStatus", { status: "success", message: `✅ پەیوەست بوو بە ستریمی چالاک: @${username}` });
             return;
         }
 
-        // Initialize a new stream
-        stream = {
-            connection: new TikTokLiveConnection(username, {}),
-            stats: {},
-            comments: [],
-            leaderboard: null,
-            pollKeywords: [],
-            pollCounts: {},
-            timeout: null,
-            connectedSockets: new Set([socket.id]),
-            lastActivity: Date.now()
-        };
-        activeStreams.set(username, stream);
+        // If a different stream is running, stop it first
+        if (tiktokLiveConnection) {
+            saveStreamToD1(currentTrackedUsername, streamStats);
+            try { tiktokLiveConnection.disconnect(); } catch(e) {}
+            if (streamWatchdog) clearInterval(streamWatchdog);
+        }
+
+        // Initialize a new global stream
+        currentTrackedUsername = username;
+        streamStats = {};
+        streamComments = [];
+        streamLeaderboard = null;
+        pollKeywords = [];
+        pollCounts = {};
+        streamLastActivity = Date.now();
+
+        tiktokLiveConnection = new TikTokLiveConnection(username, {});
 
         // Watchdog to prevent silent freezing
-        stream.watchdog = setInterval(() => {
-            if (Date.now() - stream.lastActivity > 45000) {
-                console.log(`Watchdog timeout for @${username}. Disconnecting.`);
-                io.to(username).emit("streamStatus", { status: "error", message: `⚠️ ستریمەکە وەستا بەهۆی نەبوونی داتا! تکایە دووبارە دەستپێبکە.` });
-                saveStreamToD1(username, stream.stats);
-                try { stream.connection.disconnect(); } catch(e) {}
-                clearInterval(stream.watchdog);
-                activeStreams.delete(username);
+        streamWatchdog = setInterval(() => {
+            if (Date.now() - streamLastActivity > 45000) {
+                console.log(`Watchdog timeout for @${currentTrackedUsername}. Disconnecting.`);
+                io.emit("streamStatus", { status: "error", message: `⚠️ ستریمەکە وەستا بەهۆی نەبوونی داتا! تکایە دووبارە دەستپێبکە.` });
+                saveStreamToD1(currentTrackedUsername, streamStats);
+                try { tiktokLiveConnection.disconnect(); } catch(e) {}
+                clearInterval(streamWatchdog);
+                tiktokLiveConnection = null;
+                currentTrackedUsername = null;
             }
         }, 10000);
 
-        stream.connection.connect().then(() => {
-            io.to(username).emit("streamStatus", { status: "success", message: `✅ سەرکەوتوو بوو! پەیوەست بوو بە @${username}` });
+        tiktokLiveConnection.connect().then(() => {
+            io.emit("streamStatus", { status: "success", message: `✅ سەرکەوتوو بوو! پەیوەست بوو بە @${username}` });
         }).catch(err => {
-            io.to(username).emit("streamStatus", { status: "error", message: `❌ نەتوانرا پەیوەندی بکرێت بە @${username}` });
-            if (stream.watchdog) clearInterval(stream.watchdog);
-            activeStreams.delete(username);
+            io.emit("streamStatus", { status: "error", message: `❌ نەتوانرا پەیوەندی بکرێت بە @${username}` });
+            if (streamWatchdog) clearInterval(streamWatchdog);
+            tiktokLiveConnection = null;
+            currentTrackedUsername = null;
         });
 
-        stream.connection.on('roomUser', data => { stream.lastActivity = Date.now(); if (data.viewerCount !== undefined) io.to(username).emit("viewerUpdate", { count: data.viewerCount }); });
-        stream.connection.on('room', data => { stream.lastActivity = Date.now(); if (data.viewerCount !== undefined) io.to(username).emit("viewerUpdate", { count: data.viewerCount }); });
+        tiktokLiveConnection.on('roomUser', data => { streamLastActivity = Date.now(); if (data.viewerCount !== undefined) io.emit("viewerUpdate", { count: data.viewerCount }); });
+        tiktokLiveConnection.on('room', data => { streamLastActivity = Date.now(); if (data.viewerCount !== undefined) io.emit("viewerUpdate", { count: data.viewerCount }); });
         
-        stream.connection.on('member', data => { getUser(stream, data); emitUpdate(stream, username); });
+        tiktokLiveConnection.on('member', data => { getUser(data); emitUpdate(); });
         
-        stream.connection.on('chat', data => {
-            const user = getUser(stream, data);
+        tiktokLiveConnection.on('chat', data => {
+            const user = getUser(data);
             user.commentCount += 1;
             let chatText = data.content || data.comment || data.text || data.msg || "";
             if (!chatText || String(chatText).trim() === "") chatText = "💬 [Sent a Sticker or Emote]";
             
             const chatLower = String(chatText).toLowerCase();
             let matchedVote = false;
-            stream.pollKeywords.forEach(keyword => {
+            pollKeywords.forEach(keyword => {
                 if (chatLower.includes(keyword)) {
-                    stream.pollCounts[keyword] += 1;
+                    pollCounts[keyword] += 1;
                     matchedVote = true;
                 }
             });
-            if (matchedVote) emitPollUpdate(stream, username);
+            if (matchedVote) emitPollUpdate();
 
             const commentData = { uniqueId: user.uniqueId, nickname: user.nickname, profilePictureUrl: user.profilePictureUrl, comment: String(chatText) };
             
-            stream.comments.push(commentData);
-            if(stream.comments.length > 500) stream.comments.shift();
+            streamComments.push(commentData);
+            if(streamComments.length > 500) streamComments.shift();
             
-            io.to(username).emit("newComment", commentData);
-            emitUpdate(stream, username);
+            io.emit("newComment", commentData);
+            emitUpdate();
         });
 
-        stream.connection.on('like', data => {
-            const user = getUser(stream, data);
+        tiktokLiveConnection.on('like', data => {
+            const user = getUser(data);
             user.likeCount += (data.likeCount || 1); 
             user.actualTotalLikes = user.likeCount;
-            emitUpdate(stream, username);
+            emitUpdate();
         });
 
-        stream.connection.on('gift', data => {
-            const user = getUser(stream, data);
+        tiktokLiveConnection.on('gift', data => {
+            const user = getUser(data);
             user.giftCount += data.diamondCount ? (data.diamondCount * (data.repeatCount || 1)) : 1;
-            emitUpdate(stream, username);
+            emitUpdate();
         });
 
-        stream.connection.on('share', data => {
-            const user = getUser(stream, data);
+        tiktokLiveConnection.on('share', data => {
+            const user = getUser(data);
             user.shareCount += 1;
-            emitUpdate(stream, username);
+            emitUpdate();
         });
 
-        stream.connection.on('streamEnd', () => {
-            io.to(username).emit("streamStatus", { status: "error", message: `🛑 ستریمەکە کۆتایی هات!` });
-            saveStreamToD1(username, stream.stats); // Auto-save!
-            if (stream.watchdog) clearInterval(stream.watchdog);
-            activeStreams.delete(username);
+        tiktokLiveConnection.on('streamEnd', () => {
+            io.emit("streamStatus", { status: "error", message: `🛑 ستریمەکە کۆتایی هات!` });
+            saveStreamToD1(currentTrackedUsername, streamStats); // Auto-save!
+            if (streamWatchdog) clearInterval(streamWatchdog);
+            tiktokLiveConnection = null;
+            currentTrackedUsername = null;
         });
 
-        stream.connection.on('disconnected', () => {
+        tiktokLiveConnection.on('disconnected', () => {
             console.log("Stream disconnected, attempting reconnect for @", username);
-            stream.connection.connect().catch(e => {
-                io.to(username).emit("streamStatus", { status: "error", message: `⚠️ پەیوەندی بە ستریمەکەوە پچڕا (Disconnected)` });
-                saveStreamToD1(username, stream.stats); // Auto-save!
-                if (stream.watchdog) clearInterval(stream.watchdog);
-                activeStreams.delete(username);
+            tiktokLiveConnection.connect().catch(e => {
+                io.emit("streamStatus", { status: "error", message: `⚠️ پەیوەندی بە ستریمەکەوە پچڕا (Disconnected)` });
+                saveStreamToD1(currentTrackedUsername, streamStats); // Auto-save!
+                if (streamWatchdog) clearInterval(streamWatchdog);
+                tiktokLiveConnection = null;
+                currentTrackedUsername = null;
             });
         });
 
-        stream.connection.on('error', err => {
+        tiktokLiveConnection.on('error', err => {
             console.error('TikTok Live Error for', username, ':', err);
-            io.to(username).emit("streamStatus", { status: "error", message: `❌ هەڵەیەک ڕوویدا لە پەیوەندیکردن!` });
-            saveStreamToD1(username, stream.stats); // Auto-save!
-            if (stream.watchdog) clearInterval(stream.watchdog);
-            activeStreams.delete(username);
+            io.emit("streamStatus", { status: "error", message: `❌ هەڵەیەک ڕوویدا لە پەیوەندیکردن!` });
+            saveStreamToD1(currentTrackedUsername, streamStats); // Auto-save!
+            if (streamWatchdog) clearInterval(streamWatchdog);
+            tiktokLiveConnection = null;
+            currentTrackedUsername = null;
         });
     });
 
     socket.on("disconnect", () => {
         delete activeSiteVisitors[socket.id];
-        const username = socket.activeStreamTarget;
-        if (username) {
-            const stream = activeStreams.get(username);
-            if (stream) {
-                stream.connectedSockets.delete(socket.id);
-                // We keep the stream running forever until the user manually stops it or the stream ends!
-                if (stream.connectedSockets.size === 0) {
-                    console.log(`User left, but keeping stream @${username} active in the background until it officially ends.`);
-                }
-            }
-        }
+        // The stream keeps running globally until manually stopped or ended.
     });
 });
 
