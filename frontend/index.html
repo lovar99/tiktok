@@ -378,14 +378,14 @@
                     <input type="text" id="searchInput" class="search-bar" style="margin-bottom: 0; padding: 12px; font-size: 16px; flex: 1;" placeholder="گەڕان بەدوای وشە یان ناو..." onkeyup="renderComments()" />
                     <button class="menu-btn" onclick="showDuplicateComments()" style="white-space: nowrap; margin-bottom: 0; padding: 10px; flex-shrink: 0;">🔁 دووبارە</button>
                 </div>
-                <div style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
                     <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: 600; color: white;">
-                        <input type="checkbox" id="smoothScrollToggle" onchange="toggleSmoothScroll()" style="width: 18px; height: 18px; accent-color: #FF3B5C;" checked> سکڕۆڵی هێواش
+                        <input type="checkbox" id="smoothScrollToggle" onchange="toggleSmoothScroll()" style="width: 18px; height: 18px; accent-color: #FF3B5C;" checked> سکرۆڵی هێواش
                     </label>
-                    <div id="scrollSpeedContainer" style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                    <div id="scrollSpeedContainer" style="display: flex; align-items: center; gap: 8px; width: 100%;">
                         <span style="font-size: 16px;" title="خاو">🐢</span>
-                        <input type="range" id="scrollSpeed" min="1" max="10" value="5" style="flex: 1; accent-color: #FF3B5C;" oninput="updateScrollSpeed()">
-                        <span style="font-size: 16px;" title="خێرا">🐇</span>
+                        <input type="range" id="scrollSpeed" min="1" max="10" value="10" style="flex: 1; min-width: 0; accent-color: #FF3B5C;" oninput="updateScrollSpeed()">
+                        <span style="font-size: 16px;" title="خێرا">🚗</span>
                     </div>
                 </div>
             </div>
@@ -1119,7 +1119,7 @@
 
         let commentQueue = [];
         let processQueueInterval = null;
-        let currentSpeedMs = 800;
+        let currentSpeedMs = 100;
         let isSmoothScroll = true;
 
         function toggleSmoothScroll() {
@@ -1670,6 +1670,22 @@
             document.getElementById("customModalContent").innerHTML = contentHtml;
             modal.style.display = "flex";
         }
+    </script>
+    <!-- AutoAnimate for Smooth List Reordering -->
+    <script src="https://cdn.jsdelivr.net/npm/@formkit/auto-animate@0.8.2/index.umd.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            if (typeof autoAnimate !== 'undefined') {
+                const lists = [
+                    'commentsList', 'likesList', 'giftsList', 'sharesList',
+                    'mobile-commentsList', 'mobile-likesList', 'mobile-giftsList', 'mobile-sharesList'
+                ];
+                lists.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) autoAnimate(el, { duration: 300, easing: 'ease-in-out' });
+                });
+            }
+        });
     </script>
 </body>
 </html>
