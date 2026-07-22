@@ -234,9 +234,10 @@
             justify-content: center;
         }
         .fullscreen-widget #mzGridContainer {
-            max-height: 100vh !important;
-            height: 100vh !important;
-            width: 100vw !important;
+            max-height: var(--mz-h, 100vh) !important;
+            height: var(--mz-h, 100vh) !important;
+            width: var(--mz-w, 100vw) !important;
+            max-width: var(--mz-w, 100vw) !important;
             margin: 0 !important;
             border-radius: 0 !important;
             padding: 0 !important;
@@ -252,7 +253,7 @@
         .fullscreen-widget .mz-bottom-controls {
             display: none !important;
         }
-        .fullscreen-widget .mz-exit-fs {
+        .fullscreen-widget .mz-exit-fs, .fullscreen-widget #mzFsSettingsBtn, .fullscreen-widget #mzToggleStretchBtn {
             display: block !important;
         }
         .mz-exit-fs {
@@ -390,7 +391,7 @@
 
     <!-- Draggable Floating Widgets -->
     <div id="dashboard-grid" class="dashboard-grid">
-    <div id="widget-comments" class="widget-card" style="background: linear-gradient(135deg, #0A192F, #050b14);">
+    <div id="widget-comments" class="widget-card" style="display: none; background: linear-gradient(135deg, #0A192F, #050b14);">
         <div class="widget-header">
             <span>💬 زۆرترین کۆمێنتەکان</span>
             <div style="display:flex; gap:8px;">
@@ -406,7 +407,7 @@
         <div class="resize-handle"></div>
     </div>
 
-    <div id="widget-likes" class="widget-card" style="background: linear-gradient(135deg, #2D1B4E, #140b2e);">
+    <div id="widget-likes" class="widget-card" style="display: none; background: linear-gradient(135deg, #2D1B4E, #140b2e);">
         <div class="widget-header">
             <span>❤️ زۆرترین لایکەکان</span>
             <div style="display:flex; gap:8px;">
@@ -422,7 +423,7 @@
         <div class="resize-handle"></div>
     </div>
 
-    <div id="widget-gifts" class="widget-card" style="background: linear-gradient(135deg, #1A3622, #0d1a10);">
+    <div id="widget-gifts" class="widget-card" style="display: none; background: linear-gradient(135deg, #1A3622, #0d1a10);">
         <div class="widget-header">
             <span>🎁 زۆرترین دیارییەکان</span>
             <div style="display:flex; gap:8px;">
@@ -438,7 +439,7 @@
         <div class="resize-handle"></div>
     </div>
 
-    <div id="widget-shares" class="widget-card" style="background: linear-gradient(135deg, #4A2511, #241107);">
+    <div id="widget-shares" class="widget-card" style="display: none; background: linear-gradient(135deg, #4A2511, #241107);">
         <div class="widget-header">
             <span>↗️ زۆرترین شەیرەکان</span>
             <div style="display:flex; gap:8px;">
@@ -454,7 +455,7 @@
         <div class="resize-handle"></div>
     </div>
 
-    <div id="widget-search" class="widget-card" style="background: linear-gradient(135deg, #4A1115, #240709);">
+    <div id="widget-search" class="widget-card" style="display: none; background: linear-gradient(135deg, #4A1115, #240709);">
         <div class="widget-header">
             <span>🔍 کۆمێنتە ڕاستەوخۆکان</span>
             <div style="display:flex; gap:2px;">
@@ -637,9 +638,12 @@
                         <span id="mzActivePlayer" style="font-weight: bold; color: white; font-size: 16px;">@username</span>
                     </div>
                     <div id="mzLivesContainer" style="font-size: 20px; letter-spacing: 5px; margin: 0 10px;">❤️❤️❤️</div>
-                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                        <span style="color: #ccc; font-size: 12px;">⏱️ کات</span>
-                        <span id="mzActiveTime" style="font-weight: bold; color: #ff3b5c; font-size: 18px; font-family: monospace;">00:60</span>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                            <span style="color: #ccc; font-size: 12px;">⏱️ کات</span>
+                            <span id="mzActiveTime" style="font-weight: bold; color: #ff3b5c; font-size: 18px; font-family: monospace;">00:60</span>
+                        </div>
+                        <span class="widget-btn" onclick="document.getElementById('mazeGameSettings').style.display = document.getElementById('mazeGameSettings').style.display === 'none' ? 'flex' : 'none'" title="ڕێکخستنەکان" style="display: none; font-size: 24px;" id="mzFsSettingsBtn">⚙️</span>
                     </div>
                 </div>
 
@@ -647,7 +651,20 @@
                 <div id="mzGridContainer" style="background: #111; padding: 5px; border-radius: 5px; display: grid; gap: 1px; width: fit-content; margin: 5px auto; overflow: auto; max-width: 100%; max-height: 65vh; justify-content: center;">
                 </div>
 
-                <button class="mz-exit-fs" onclick="document.getElementById('widget-maze-game').classList.remove('fullscreen-widget')">✖ دەرچوون لە شاشەی تەواو</button>
+                <!-- Fullscreen Stretch Controls -->
+                <div id="mzStretchControls" style="display: none; position: absolute; bottom: 20px; left: 20px; z-index: 101; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 10px; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; gap: 10px;">
+                        <button class="menu-btn" onclick="stretchMaze(0, -5)" style="background: #333;">↕️ بچووککردنەوەی درێژی</button>
+                        <button class="menu-btn" onclick="stretchMaze(0, 5)" style="background: #4CAF50;">↕️ گەورەکردنی درێژی</button>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="menu-btn" onclick="stretchMaze(-5, 0)" style="background: #333;">↔️ بچووککردنەوەی پانی</button>
+                        <button class="menu-btn" onclick="stretchMaze(5, 0)" style="background: #2196F3;">↔️ گەورەکردنی پانی</button>
+                    </div>
+                </div>
+                <button id="mzToggleStretchBtn" style="display: none; position: absolute; bottom: 20px; left: 20px; z-index: 102; background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="document.getElementById('mzStretchControls').style.display = document.getElementById('mzStretchControls').style.display === 'none' ? 'flex' : 'none'">📐 ڕێکخستنی قەبارە</button>
+
+                <button class="mz-exit-fs" onclick="exitMazeFullscreen()">✖ دەرچوون لە شاشەی تەواو</button>
 
                 <!-- Controls & Feed -->
                 <div class="mz-bottom-controls" style="display: flex; width: 100%; gap: 10px; margin-top: 10px; flex-grow: 1; min-height: 0;">
@@ -2081,6 +2098,20 @@
         // --- ESCAPE THE MAZE GAME LOGIC ---
         let currentMazeGameData = null;
         let currentNumberGameQuestionnMode = false;
+        let mzW = 100, mzH = 100;
+
+        function stretchMaze(dw, dh) {
+            mzW += dw;
+            mzH += dh;
+            const grid = document.getElementById('mzGridContainer');
+            grid.style.setProperty('--mz-w', mzW + 'vw');
+            grid.style.setProperty('--mz-h', mzH + 'vh');
+        }
+
+        function exitMazeFullscreen() {
+            document.getElementById('widget-maze-game').classList.remove('fullscreen-widget');
+            document.getElementById('mzStretchControls').style.display = 'none';
+        }
 
         function selectAndStartMaze(uniqueId) {
             socket.emit('selectMazePlayer', uniqueId);
