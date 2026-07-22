@@ -86,7 +86,9 @@ function parseEasternNumerals(str) {
 }
 
 // CLOUDFLARE D1 DATABASE CONFIGURATION
-const D1_API_URL = "https://api.cloudflare.com/client/v4/accounts/680373c66f54cff8c03c582df23f66f9/d1/database/c989670d-f06b-4ca0-9f5e-473d2ff655f4/query";
+const D1_ACCOUNT_ID = process.env.CF_ACCOUNT_ID || "680373c66f54cff8c03c582df23f66f9";
+const D1_DATABASE_ID = process.env.CF_D1_ID || "c989670d-f06b-4ca0-9f5e-473d2ff655f4";
+const D1_API_URL = `https://api.cloudflare.com/client/v4/accounts/${D1_ACCOUNT_ID}/d1/database/${D1_DATABASE_ID}/query`;
 const D1_API_TOKEN = process.env.CF_API_TOKEN;
 
 async function queryD1(sql, params = []) {
