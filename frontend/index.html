@@ -1897,19 +1897,19 @@
         }
     </script>
     <!-- AutoAnimate for Smooth List Reordering -->
-    <script src="https://cdn.jsdelivr.net/npm/@formkit/auto-animate/index.min.js"></script>
-    <script>
+    <script type="module">
+        import autoAnimate from 'https://cdn.jsdelivr.net/npm/@formkit/auto-animate/index.min.js';
+        window.autoAnimate = autoAnimate;
+        
         document.addEventListener("DOMContentLoaded", function() {
-            if (typeof autoAnimate !== 'undefined') {
-                const lists = [
-                    'commentsList', 'likesList', 'giftsList', 'sharesList',
-                    'mobile-commentsList', 'mobile-likesList', 'mobile-giftsList', 'mobile-sharesList'
-                ];
-                lists.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) autoAnimate(el, { duration: 300, easing: 'ease-in-out' });
-                });
-            }
+            const lists = [
+                'commentsList', 'likesList', 'giftsList', 'sharesList',
+                'mobile-commentsList', 'mobile-likesList', 'mobile-giftsList', 'mobile-sharesList'
+            ];
+            lists.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) autoAnimate(el, { duration: 300, easing: 'ease-in-out' });
+            });
         });
     </script>
 </body>
