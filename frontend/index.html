@@ -312,8 +312,8 @@
         <button class="menu-btn" onclick="toggleWidget('widget-gifts')">🎁 کۆکراوەی دیارییەکان</button>
         <button class="menu-btn" onclick="toggleWidget('widget-shares')">✨ لیستی شەیرەکان</button>
         <button class="menu-btn" onclick="toggleWidget('widget-search')">🔍 گەڕانی کۆمێنت</button>
-        <button class="menu-btn" onclick="toggleWidget('widget-maze-game')">?? ????? ???????</button>
-          <button class="menu-btn" onclick="toggleWidget('widget-number-game')">🎯 یاری ژمارەی نهێنی</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-maze-game')">🧩 پازڵی دەرچوون</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-number-game')">🎯 یاری ژمارەی نهێنی</button>
         <button class="menu-btn" onclick="toggleWidget('widget-all-in-one')" style="background: linear-gradient(135deg, #ff3b5c, #9c27b0); border: 1px solid white;">📱 مۆبایل - هەمووی پێکەوە</button>
         <div style="border-top: 1px solid #444; margin: 10px 0;"></div>
         <button class="menu-btn" style="background: #9c27b0;" onclick="autoArrangeWidgets()">📐 ڕێکخستنی ئۆتۆماتیکی</button>
@@ -488,17 +488,16 @@
         <div class="resize-handle"></div>
     </div>
 
-    
     <!-- MAZE GAME WIDGET -->
     <div id="widget-maze-game" class="widget-card" style="display: none; background: linear-gradient(135deg, #0d1b2a, #1b263b); min-width: 380px; width: 400px; height: 550px;">
         <div class="widget-header" style="background: rgba(0, 0, 0, 0.4);">
-            <span>?? ????? ???????</span>
+            <span>🧩 پازڵی دەرچوون</span>
             <div style="display:flex; gap:2px;">
-                <span class="widget-btn" onclick="document.getElementById('mazeGameSettings').style.display = document.getElementById('mazeGameSettings').style.display === 'none' ? 'flex' : 'none'" title="???????????">??</span>
+                <span class="widget-btn" onclick="document.getElementById('mazeGameSettings').style.display = document.getElementById('mazeGameSettings').style.display === 'none' ? 'flex' : 'none'" title="ڕێکخستنەکان">⚙️</span>
                 <span class="widget-btn" onclick="zoomWidget('widget-maze-game', -1)">-</span>
                 <span class="widget-btn" onclick="zoomWidget('widget-maze-game', 1)">+</span>
                 <span class="widget-close" onclick="minimizeWidget('widget-maze-game')">_</span>
-                <span class="widget-close" onclick="toggleWidget('widget-maze-game')">?</span>
+                <span class="widget-close" onclick="toggleWidget('widget-maze-game')">✖</span>
             </div>
         </div>
         <div class="widget-content" style="padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative;">
@@ -507,58 +506,58 @@
             <div id="mazeGameSettings" style="display: none; flex-direction: column; width: 100%; gap: 10px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 10px; box-sizing: border-box; z-index: 20; position: absolute; top: 0; left: 0;">
                 <div style="display: flex; gap: 10px;">
                     <select id="mzLevel" class="search-bar" style="margin-bottom: 0; padding: 8px; flex: 1;">
-                        <option value="11">?? ????? ????? � 10 � 10</option>
-                        <option value="15">?? ????? ?????? � 15 � 15</option>
-                        <option value="25">?? ????? ???? � 25 � 25</option>
-                        <option value="35">?? ????? ??? ???? � 35 � 35</option>
+                        <option value="11">🟢 ئاستی ئاسان — 10 × 10</option>
+                        <option value="15">🟡 ئاستی ئاسایی — 15 × 15</option>
+                        <option value="25">🔴 ئاستی سەخت — 25 × 25</option>
+                        <option value="35">💀 ئاستی زۆر سەخت — 35 × 35</option>
                     </select>
                     <select id="mzTime" class="search-bar" style="margin-bottom: 0; padding: 8px; flex: 1;">
-                        <option value="15">15 ????</option>
-                        <option value="30">30 ????</option>
-                        <option value="45">45 ????</option>
-                        <option value="60" selected>60 ????</option>
+                        <option value="15">15 چرکە</option>
+                        <option value="30">30 چرکە</option>
+                        <option value="45">45 چرکە</option>
+                        <option value="60" selected>60 چرکە</option>
                     </select>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <select id="mzLives" class="search-bar" style="margin-bottom: 0; padding: 8px; flex: 1;">
-                        <option value="1">?? 1</option>
-                        <option value="2">???? 2</option>
-                        <option value="3" selected>?????? 3</option>
+                        <option value="1">❤️ 1</option>
+                        <option value="2">❤️❤️ 2</option>
+                        <option value="3" selected>❤️❤️❤️ 3</option>
                     </select>
                 </div>
                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: bold; color: white;">
-                    <input type="checkbox" id="mzTraps" style="width: 18px; height: 18px; accent-color: #4169E1;"> ?? ?????????? ???????
+                    <input type="checkbox" id="mzTraps" style="width: 18px; height: 18px; accent-color: #4169E1;"> ☑️ چالاککردنی تەڵەکان
                 </label>
                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: bold; color: white;">
-                    <input type="checkbox" id="mzLimited" style="width: 18px; height: 18px; accent-color: #4169E1;"> ?? ????????? ?????? ???????? (5x5)
+                    <input type="checkbox" id="mzLimited" style="width: 18px; height: 18px; accent-color: #4169E1;"> ☑️ پیشاندانی ناوچەی سنووردار (5x5)
                 </label>
 
                 <div style="border-top: 1px solid #444; margin: 5px 0;"></div>
                 
                 <div style="display: flex; gap: 10px;">
-                    <button class="save-btn" style="background: #4169E1; flex: 1; padding: 8px;" onclick="socket.emit('startMazeRegistration')">??????????? ?????????</button>
-                    <button class="stop-btn" onclick="socket.emit('clearMazePlayers')" style="padding: 8px;">???</button>
+                    <button class="save-btn" style="background: #4169E1; flex: 1; padding: 8px;" onclick="socket.emit('startMazeRegistration')">دەستپێکردنی تۆمارکردن</button>
+                    <button class="stop-btn" onclick="socket.emit('clearMazePlayers')" style="padding: 8px;">🗑️</button>
                 </div>
 
                 <select id="mzPlayerSelect" class="search-bar" style="margin-bottom: 0; padding: 8px;" onchange="socket.emit('selectMazePlayer', this.value)">
-                    <option value="">?? ?????????? ??????? (??????? 100)</option>
+                    <option value="">🎯 هەڵبژاردنی یاریزان (چاوەڕێی 100)</option>
                 </select>
 
                 <div style="display: flex; gap: 10px; margin-top: 5px;">
-                    <button class="save-btn" onclick="startMazeGame()" style="flex: 1; padding: 8px;">?? ??????????? ????</button>
-                    <button class="stop-btn" onclick="socket.emit('stopMazeGame')" style="flex: 1; padding: 8px;">?? ????????</button>
+                    <button class="save-btn" onclick="startMazeGame()" style="flex: 1; padding: 8px;">▶️ دەستپێکردنی یاری</button>
+                    <button class="stop-btn" onclick="socket.emit('stopMazeGame')" style="flex: 1; padding: 8px;">⏹️ وەستاندن</button>
                 </div>
-                <button class="menu-btn" onclick="document.getElementById('mazeGameSettings').style.display='none'" style="margin-top: 5px; background: #333;">??????</button>
+                <button class="menu-btn" onclick="document.getElementById('mazeGameSettings').style.display='none'" style="margin-top: 5px; background: #333;">داخستن</button>
             </div>
 
             <!-- Registration Screen -->
             <div id="mzRegistrationScreen" style="display: none; width: 100%; flex-direction: column; align-items: center; gap: 10px;">
-                <h3 style="color: #4169E1; margin: 0; text-align: center;">?? ?? ??????????? ?? ???????? ??????:</h3>
+                <h3 style="color: #4169E1; margin: 0; text-align: center;">🎮 بۆ بەژداریکردن لە یارییەکە بنووسە:</h3>
                 <h1 style="font-size: 48px; color: white; text-shadow: 0 0 15px rgba(255,255,255,0.5); margin: 0;">100</h1>
                 <div style="width: 100%; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
-                    <h4 style="margin: 0 0 10px 0; color: #aaa;">?? ???????? ????????????: (<span id="mzWaitCount">0</span>)</h4>
+                    <h4 style="margin: 0 0 10px 0; color: #aaa;">👥 یاریزانە چاوەڕوانەکان: (<span id="mzWaitCount">0</span>)</h4>
                     <div id="mzWaitList" style="display: flex; flex-direction: column; gap: 5px; max-height: 200px; overflow-y: auto;">
-                        <span style="color: #666; font-style: italic;">??????? ??????????...</span>
+                        <span style="color: #666; font-style: italic;">چاوەڕێی کۆمێنتەکان...</span>
                     </div>
                 </div>
             </div>
@@ -568,16 +567,16 @@
                 
                 <div style="display: flex; justify-content: space-between; width: 100%; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 8px; box-sizing: border-box;">
                     <div style="display: flex; flex-direction: column;">
-                        <span style="color: #ccc; font-size: 12px;">?? ???????</span>
+                        <span style="color: #ccc; font-size: 12px;">👤 یاریزان</span>
                         <span id="mzActivePlayer" style="font-weight: bold; color: white; font-size: 16px;">@username</span>
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                        <span style="color: #ccc; font-size: 12px;">?? ???</span>
+                        <span style="color: #ccc; font-size: 12px;">⏱️ کات</span>
                         <span id="mzActiveTime" style="font-weight: bold; color: #ff3b5c; font-size: 18px; font-family: monospace;">00:60</span>
                     </div>
                 </div>
 
-                <div id="mzLivesContainer" style="font-size: 20px; letter-spacing: 5px; margin: 5px 0;">??????</div>
+                <div id="mzLivesContainer" style="font-size: 20px; letter-spacing: 5px; margin: 5px 0;">❤️❤️❤️</div>
 
                 <!-- Grid -->
                 <div id="mzGridContainer" style="background: #111; padding: 5px; border-radius: 5px; display: grid; gap: 1px; width: fit-content; margin: 5px auto; overflow: hidden; justify-content: center;">
@@ -586,11 +585,11 @@
                 <!-- Controls & Feed -->
                 <div style="display: flex; width: 100%; gap: 10px; margin-top: 10px; flex-grow: 1; min-height: 0;">
                     <div style="flex: 1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; font-size: 12px; color: #ccc;">
-                        <b style="color: white; display: block; margin-bottom: 5px;">?? ???????:</b>
-                        <div>? = ????</div>
-                        <div>? = ???</div>
-                        <div>? = ??????</div>
-                        <div>? = ???????</div>
+                        <b style="color: white; display: block; margin-bottom: 5px;">🎮 کۆنترۆڵ:</b>
+                        <div>ر = ڕاست</div>
+                        <div>چ = چەپ</div>
+                        <div>س = سەرەوە</div>
+                        <div>خ = خوارەوە</div>
                     </div>
                     <div id="mzActionFeed" style="flex: 2; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
                     </div>
@@ -599,15 +598,16 @@
 
             <!-- End Screen -->
             <div id="mzEndScreen" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
-                <h1 id="mzEndTitle" style="font-size: 60px; margin-bottom: 10px;">??</h1>
-                <h2 id="mzEndSubtitle" style="color: #ff3b5c; margin-top: 0;">???? ????? ???!</h2>
-                <div id="mzEndMsg" style="font-size: 16px; color: #ccc; margin-bottom: 20px;">@username ???????? ?? ?????? ???????.</div>
-                <button class="menu-btn" onclick="document.getElementById('mzEndScreen').style.display='none'" style="background: #333;">??????</button>
+                <h1 id="mzEndTitle" style="font-size: 60px; margin-bottom: 10px;">💀</h1>
+                <h2 id="mzEndSubtitle" style="color: #ff3b5c; margin-top: 0;">یاری تەواو بوو!</h2>
+                <div id="mzEndMsg" style="font-size: 16px; color: #ccc; margin-bottom: 20px;">@username نەیتوانی لە مازەکە دەربچێت.</div>
+                <button class="menu-btn" onclick="document.getElementById('mzEndScreen').style.display='none'" style="background: #333;">داخستن</button>
             </div>
 
         </div>
         <div class="resize-handle"></div>
     </div>
+
     <!-- Mobile All-in-One Swipeable Widget -->
     <div id="widget-all-in-one" class="widget-card" style="display: none; background: #0b0f19; width: 380px; height: 500px;">
         <div class="widget-header">
@@ -2001,7 +2001,7 @@
             openModal("🔁 Top Repeated Comments", html);
         }
 
-                // --- ESCAPE THE MAZE GAME LOGIC ---
+        // --- ESCAPE THE MAZE GAME LOGIC ---
         let currentMazeGameData = null;
 
         function startMazeGame() {
@@ -2030,8 +2030,6 @@
             const endScreen = document.getElementById('mzEndScreen');
             
             if (!mGame.isActive) {
-                // Keep widget display as is, user can close it.
-                // Reset to default
                 regScreen.style.display = 'none';
                 activeArea.style.display = 'none';
                 endScreen.style.display = 'none';
@@ -2046,20 +2044,20 @@
                 regScreen.style.display = 'flex';
                 activeArea.style.display = 'none';
                 document.getElementById('mzWaitCount').innerText = mGame.registeredPlayers.length;
-                document.getElementById('mzWaitList').innerHTML = mGame.registeredPlayers.map(p => <div>@ + p.nickname + </div>).join('') || '<span style="color:#666">??????? ??????????...</span>';
+                document.getElementById('mzWaitList').innerHTML = mGame.registeredPlayers.map(p => `<div>@${p.nickname}</div>`).join('') || '<span style="color:#666">چاوەڕێی کۆمێنتەکان...</span>';
                 
                 const select = document.getElementById('mzPlayerSelect');
                 const currentVal = select.value;
-                select.innerHTML = <option value="">?? ?????????? ???????</option> + mGame.registeredPlayers.map(p => <option value="${p.uniqueId}" >@</option>).join('');
-                if (currentVal && mGame.registeredPlayers.find(p=>p.uniqueId===currentVal)) select.value = currentVal;
+                select.innerHTML = `<option value="">🎯 هەڵبژاردنی یاریزان (چاوەڕێی 100)</option>` + mGame.registeredPlayers.map(p => `<option value="${p.uniqueId}">@${p.nickname}</option>`).join('');
+                if (currentVal && mGame.registeredPlayers.find(p => p.uniqueId === currentVal)) select.value = currentVal;
             } else if (mGame.phase === 'playing' || mGame.phase === 'ended') {
                 regScreen.style.display = 'none';
                 activeArea.style.display = 'flex';
                 document.getElementById('mazeGameSettings').style.display = 'none';
                 
                 if (mGame.selectedPlayer) document.getElementById('mzActivePlayer').innerText = "@" + mGame.selectedPlayer.nickname;
-                document.getElementById('mzActiveTime').innerText =  0:;
-                document.getElementById('mzLivesContainer').innerHTML = '??'.repeat(mGame.lives) + '??'.repeat(mGame.initialLives - mGame.lives);
+                document.getElementById('mzActiveTime').innerText = `00:${String(mGame.remainingTime).padStart(2, '0')}`;
+                document.getElementById('mzLivesContainer').innerHTML = '❤️'.repeat(mGame.lives) + '🖤'.repeat(mGame.initialLives - mGame.lives);
                 
                 renderMazeGrid();
             }
@@ -2071,8 +2069,8 @@
             const m = currentMazeGameData;
             
             container.innerHTML = '';
-            container.style.gridTemplateColumns = epeat(, 20px);
-            container.style.gridTemplateRows = epeat(, 20px);
+            container.style.gridTemplateColumns = `repeat(${m.limitedView ? 5 : m.width}, 20px)`;
+            container.style.gridTemplateRows = `repeat(${m.limitedView ? 5 : m.height}, 20px)`;
 
             let startY = 0, endY = m.height - 1;
             let startX = 0, endX = m.width - 1;
@@ -2083,13 +2081,12 @@
                 startX = Math.max(0, m.playerPos.x - 2);
                 endX = Math.min(m.width - 1, m.playerPos.x + 2);
 
-                // Pad borders if out of bounds so the grid stays exactly 5x5 visually
                 const padTop = Math.max(0, 2 - m.playerPos.y);
                 const padLeft = Math.max(0, 2 - m.playerPos.x);
-                container.style.paddingTop = ${padTop * 21 + 5}px;
-                container.style.paddingLeft = ${padLeft * 21 + 5}px;
-                container.style.width = 110px; 
-                container.style.height = 110px;
+                container.style.paddingTop = `${padTop * 21 + 5}px`;
+                container.style.paddingLeft = `${padLeft * 21 + 5}px`;
+                container.style.width = `110px`; 
+                container.style.height = `110px`;
                 container.style.justifyContent = 'start';
                 container.style.alignContent = 'start';
             } else {
@@ -2097,6 +2094,7 @@
                 container.style.width = 'fit-content';
                 container.style.height = 'fit-content';
                 container.style.justifyContent = 'center';
+                container.style.alignContent = 'center';
             }
 
             for (let y = startY; y <= endY; y++) {
@@ -2110,16 +2108,16 @@
                     cell.style.fontSize = '14px';
 
                     if (y === m.playerPos.y && x === m.playerPos.x) {
-                        cell.innerText = '??';
+                        cell.innerText = '🟢';
                     } else if (y === m.exitPos.y && x === m.exitPos.x) {
-                        cell.innerText = '??';
+                        cell.innerText = '🚪';
                     } else if (m.maze[y][x] === 1) {
-                        cell.style.backgroundColor = '#444'; // Wall
+                        cell.style.backgroundColor = '#444';
                         cell.style.borderRadius = '3px';
                     } else if (m.maze[y][x] === 2) {
-                        cell.innerText = '??'; // Trap
+                        cell.innerText = '💥';
                     } else {
-                        cell.style.backgroundColor = '#222'; // Path
+                        cell.style.backgroundColor = '#222';
                         cell.style.borderRadius = '3px';
                     }
                     container.appendChild(cell);
@@ -2137,7 +2135,7 @@
         socket.on("mazeGameTick", (data) => {
             if(currentMazeGameData) {
                 currentMazeGameData.remainingTime = data.remainingTime;
-                document.getElementById('mzActiveTime').innerText =  0:;
+                document.getElementById('mzActiveTime').innerText = `00:${String(data.remainingTime).padStart(2, '0')}`;
             }
         });
 
@@ -2150,9 +2148,9 @@
 
                 const feed = document.getElementById('mzActionFeed');
                 let div = document.createElement('div');
-                div.innerHTML = <span style="color:#4169E1;">@</span>: ;
-                if(data.feedbacks.length > 0) {
-                    div.innerHTML += <br><span style="color:#ff3b5c; font-size:10px;"></span>;
+                div.innerHTML = `<span style="color:#4169E1;">@${data.user}</span>: ${data.text}`;
+                if(data.feedbacks && data.feedbacks.length > 0) {
+                    div.innerHTML += `<br><span style="color:#ff3b5c; font-size:10px;">${data.feedbacks.join(', ')}</span>`;
                 }
                 feed.prepend(div);
                 if (feed.children.length > 20) feed.removeChild(feed.lastChild);
@@ -2166,27 +2164,28 @@
                 endScreen.style.display = 'flex';
                 
                 if (data.stopped) {
-                    document.getElementById('mzEndTitle').innerText = '??';
-                    document.getElementById('mzEndSubtitle').innerText = '???? ?????';
-                    document.getElementById('mzEndMsg').innerText = '???????? ??????? ??????? ????????.';
+                    document.getElementById('mzEndTitle').innerText = '⏹️';
+                    document.getElementById('mzEndSubtitle').innerText = 'یاری وەستا';
+                    document.getElementById('mzEndMsg').innerText = 'یارییەکە لەلایەن هۆستەوە وەستێنرا.';
                 } else if (data.winner) {
-                    document.getElementById('mzEndTitle').innerText = '??';
-                    document.getElementById('mzEndSubtitle').innerText = '????????!';
+                    document.getElementById('mzEndTitle').innerText = '🏆';
+                    document.getElementById('mzEndSubtitle').innerText = 'سەرکەوتن!';
                     document.getElementById('mzEndSubtitle').style.color = '#4CAF50';
-                    document.getElementById('mzEndMsg').innerText = ??????! ?????? ?? ?????? ???????.;
+                    document.getElementById('mzEndMsg').innerText = `ئافەرم! توانرا لە مازەکە دەربچێت.`;
                 } else if (data.reason === 'lives') {
-                    document.getElementById('mzEndTitle').innerText = '??';
-                    document.getElementById('mzEndSubtitle').innerText = '???????? ????? ????!';
+                    document.getElementById('mzEndTitle').innerText = '💀';
+                    document.getElementById('mzEndSubtitle').innerText = 'ژیانەکان تەواو بوون!';
                     document.getElementById('mzEndSubtitle').style.color = '#ff3b5c';
-                    document.getElementById('mzEndMsg').innerText = ????? ?????????? ???? ????.;
+                    document.getElementById('mzEndMsg').innerText = `بەهۆی تەڵەکانەوە یاری دۆڕا.`;
                 } else {
-                    document.getElementById('mzEndTitle').innerText = '?';
-                    document.getElementById('mzEndSubtitle').innerText = '??? ????? ???!';
+                    document.getElementById('mzEndTitle').innerText = '⏰';
+                    document.getElementById('mzEndSubtitle').innerText = 'کات تەواو بوو!';
                     document.getElementById('mzEndSubtitle').style.color = '#ff3b5c';
-                    document.getElementById('mzEndMsg').innerText = ???????? ?? ???? ??????????? ???????.;
+                    document.getElementById('mzEndMsg').innerText = `نەتوانرا لە کاتی دیاریکراودا دەربچێت.`;
                 }
             }
         });
+
         // Custom Popup UI Logic
         function openModal(title, contentHtml) {
             let modal = document.getElementById("customModal");
@@ -2225,6 +2224,3 @@
     </script>
 </body>
 </html>
-
-
-

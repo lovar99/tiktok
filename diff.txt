@@ -1,0 +1,359 @@
+﻿diff --git a/frontend/index.html b/frontend/index.html
+index 41ae7ee..4a1fda5 100644
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -312,7 +312,8 @@
+         <button class="menu-btn" onclick="toggleWidget('widget-gifts')">≡ƒÄü ┌⌐█å┌⌐╪▒╪º┘ê█ò█î ╪»█î╪º╪▒█î█î█ò┌⌐╪º┘å</button>
+         <button class="menu-btn" onclick="toggleWidget('widget-shares')">Γ£¿ ┘ä█î╪│╪¬█î ╪┤█ò█î╪▒█ò┌⌐╪º┘å</button>
+         <button class="menu-btn" onclick="toggleWidget('widget-search')">≡ƒöì ┌»█ò┌ò╪º┘å█î ┌⌐█å┘à█Ä┘å╪¬</button>
+-        <button class="menu-btn" onclick="toggleWidget('widget-number-game')">≡ƒÄ» █î╪º╪▒█î ┌ÿ┘à╪º╪▒█ò█î ┘å┘ç█Ä┘å█î</button>
++        <button class="menu-btn" onclick="toggleWidget('widget-maze-game')">?? ????? ???????</button>
++          <button class="menu-btn" onclick="toggleWidget('widget-number-game')">≡ƒÄ» █î╪º╪▒█î ┌ÿ┘à╪º╪▒█ò█î ┘å┘ç█Ä┘å█î</button>
+         <button class="menu-btn" onclick="toggleWidget('widget-all-in-one')" style="background: linear-gradient(135deg, #ff3b5c, #9c27b0); border: 1px solid white;">≡ƒô▒ ┘à█å╪¿╪º█î┘ä - ┘ç█ò┘à┘ê┘ê█î ┘╛█Ä┌⌐█ò┘ê█ò</button>
+         <div style="border-top: 1px solid #444; margin: 10px 0;"></div>
+         <button class="menu-btn" style="background: #9c27b0;" onclick="autoArrangeWidgets()">≡ƒôÉ ┌ò█Ä┌⌐╪«╪│╪¬┘å█î ╪ª█å╪¬█å┘à╪º╪¬█î┌⌐█î</button>
+@@ -487,6 +488,126 @@
+         <div class="resize-handle"></div>
+     </div>
+ 
++    
++    <!-- MAZE GAME WIDGET -->
++    <div id="widget-maze-game" class="widget-card" style="display: none; background: linear-gradient(135deg, #0d1b2a, #1b263b); min-width: 380px; width: 400px; height: 550px;">
++        <div class="widget-header" style="background: rgba(0, 0, 0, 0.4);">
++            <span>?? ????? ???????</span>
++            <div style="display:flex; gap:2px;">
++                <span class="widget-btn" onclick="document.getElementById('mazeGameSettings').style.display = document.getElementById('mazeGameSettings').style.display === 'none' ? 'flex' : 'none'" title="???????????">??</span>
++                <span class="widget-btn" onclick="zoomWidget('widget-maze-game', -1)">-</span>
++                <span class="widget-btn" onclick="zoomWidget('widget-maze-game', 1)">+</span>
++                <span class="widget-close" onclick="minimizeWidget('widget-maze-game')">_</span>
++                <span class="widget-close" onclick="toggleWidget('widget-maze-game')">?</span>
++            </div>
++        </div>
++        <div class="widget-content" style="padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative;">
++            
++            <!-- Settings Panel -->
++            <div id="mazeGameSettings" style="display: none; flex-direction: column; width: 100%; gap: 10px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 10px; box-sizing: border-box; z-index: 20; position: absolute; top: 0; left: 0;">
++                <div style="display: flex; gap: 10px;">
++                    <select id="mzLevel" class="search-bar" style="margin-bottom: 0; padding: 8px; flex: 1;">
++                        <option value="11">?? ????? ????? ù 10 ╫ 10</option>
++                        <option value="15">?? ????? ?????? ù 15 ╫ 15</option>
++                        <option value="25">?? ????? ???? ù 25 ╫ 25</option>
++                        <option value="35">?? ????? ??? ???? ù 35 ╫ 35</option>
++                    </select>
++                    <select id="mzTime" class="search-bar" style="margin-bottom: 0; padding: 8px; flex: 1;">
++                        <option value="15">15 ????</option>
++                        <option value="30">30 ????</option>
++                        <option value="45">45 ????</option>
++                        <option value="60" selected>60 ????</option>
++                    </select>
++                </div>
++                <div style="display: flex; gap: 10px;">
++                    <select id="mzLives" class="search-bar" style="margin-bottom: 0; padding: 8px; flex: 1;">
++                        <option value="1">?? 1</option>
++                        <option value="2">???? 2</option>
++                        <option value="3" selected>?????? 3</option>
++                    </select>
++                </div>
++                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: bold; color: white;">
++                    <input type="checkbox" id="mzTraps" style="width: 18px; height: 18px; accent-color: #4169E1;"> ?? ?????????? ???????
++                </label>
++                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: bold; color: white;">
++                    <input type="checkbox" id="mzLimited" style="width: 18px; height: 18px; accent-color: #4169E1;"> ?? ????????? ?????? ???????? (5x5)
++                </label>
++
++                <div style="border-top: 1px solid #444; margin: 5px 0;"></div>
++                
++                <div style="display: flex; gap: 10px;">
++                    <button class="save-btn" style="background: #4169E1; flex: 1; padding: 8px;" onclick="socket.emit('startMazeRegistration')">??????????? ?????????</button>
++                    <button class="stop-btn" onclick="socket.emit('clearMazePlayers')" style="padding: 8px;">???</button>
++                </div>
++
++                <select id="mzPlayerSelect" class="search-bar" style="margin-bottom: 0; padding: 8px;" onchange="socket.emit('selectMazePlayer', this.value)">
++                    <option value="">?? ?????????? ??????? (??????? 100)</option>
++                </select>
++
++                <div style="display: flex; gap: 10px; margin-top: 5px;">
++                    <button class="save-btn" onclick="startMazeGame()" style="flex: 1; padding: 8px;">?? ??????????? ????</button>
++                    <button class="stop-btn" onclick="socket.emit('stopMazeGame')" style="flex: 1; padding: 8px;">?? ????????</button>
++                </div>
++                <button class="menu-btn" onclick="document.getElementById('mazeGameSettings').style.display='none'" style="margin-top: 5px; background: #333;">??????</button>
++            </div>
++
++            <!-- Registration Screen -->
++            <div id="mzRegistrationScreen" style="display: none; width: 100%; flex-direction: column; align-items: center; gap: 10px;">
++                <h3 style="color: #4169E1; margin: 0; text-align: center;">?? ?? ??????????? ?? ???????? ??????:</h3>
++                <h1 style="font-size: 48px; color: white; text-shadow: 0 0 15px rgba(255,255,255,0.5); margin: 0;">100</h1>
++                <div style="width: 100%; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
++                    <h4 style="margin: 0 0 10px 0; color: #aaa;">?? ???????? ????????????: (<span id="mzWaitCount">0</span>)</h4>
++                    <div id="mzWaitList" style="display: flex; flex-direction: column; gap: 5px; max-height: 200px; overflow-y: auto;">
++                        <span style="color: #666; font-style: italic;">??????? ??????????...</span>
++                    </div>
++                </div>
++            </div>
++
++            <!-- Active Game Area -->
++            <div id="mzActiveArea" style="width: 100%; display: none; flex-direction: column; align-items: center; height: 100%;">
++                
++                <div style="display: flex; justify-content: space-between; width: 100%; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 8px; box-sizing: border-box;">
++                    <div style="display: flex; flex-direction: column;">
++                        <span style="color: #ccc; font-size: 12px;">?? ???????</span>
++                        <span id="mzActivePlayer" style="font-weight: bold; color: white; font-size: 16px;">@username</span>
++                    </div>
++                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
++                        <span style="color: #ccc; font-size: 12px;">?? ???</span>
++                        <span id="mzActiveTime" style="font-weight: bold; color: #ff3b5c; font-size: 18px; font-family: monospace;">00:60</span>
++                    </div>
++                </div>
++
++                <div id="mzLivesContainer" style="font-size: 20px; letter-spacing: 5px; margin: 5px 0;">??????</div>
++
++                <!-- Grid -->
++                <div id="mzGridContainer" style="background: #111; padding: 5px; border-radius: 5px; display: grid; gap: 1px; width: fit-content; margin: 5px auto; overflow: hidden; justify-content: center;">
++                </div>
++
++                <!-- Controls & Feed -->
++                <div style="display: flex; width: 100%; gap: 10px; margin-top: 10px; flex-grow: 1; min-height: 0;">
++                    <div style="flex: 1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; font-size: 12px; color: #ccc;">
++                        <b style="color: white; display: block; margin-bottom: 5px;">?? ???????:</b>
++                        <div>? = ????</div>
++                        <div>? = ???</div>
++                        <div>? = ??????</div>
++                        <div>? = ???????</div>
++                    </div>
++                    <div id="mzActionFeed" style="flex: 2; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
++                    </div>
++                </div>
++            </div>
++
++            <!-- End Screen -->
++            <div id="mzEndScreen" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
++                <h1 id="mzEndTitle" style="font-size: 60px; margin-bottom: 10px;">??</h1>
++                <h2 id="mzEndSubtitle" style="color: #ff3b5c; margin-top: 0;">???? ????? ???!</h2>
++                <div id="mzEndMsg" style="font-size: 16px; color: #ccc; margin-bottom: 20px;">@username ???????? ?? ?????? ???????.</div>
++                <button class="menu-btn" onclick="document.getElementById('mzEndScreen').style.display='none'" style="background: #333;">??????</button>
++            </div>
++
++        </div>
++        <div class="resize-handle"></div>
++    </div>
+     <!-- Mobile All-in-One Swipeable Widget -->
+     <div id="widget-all-in-one" class="widget-card" style="display: none; background: #0b0f19; width: 380px; height: 500px;">
+         <div class="widget-header">
+@@ -650,7 +771,11 @@
+             socket.emit("requestInitialState", getUsernameFromToken());
+         });
+ 
+-        socket.on("initialState", (data) => {
++        socket.on("initialState", (data) => {
++            if (data.mazeGame) {
++                currentMazeGameData = data.mazeGame;
++                updateMazeUI();
++            }
+             if (data.searchHistory) {
+                 searchHistory = data.searchHistory;
+                 renderHistory();
+@@ -1876,6 +2001,192 @@
+             openModal("≡ƒöü Top Repeated Comments", html);
+         }
+ 
++                // --- ESCAPE THE MAZE GAME LOGIC ---
++        let currentMazeGameData = null;
++
++        function startMazeGame() {
++            const settings = {
++                width: parseInt(document.getElementById('mzLevel').value),
++                height: parseInt(document.getElementById('mzLevel').value),
++                duration: parseInt(document.getElementById('mzTime').value),
++                lives: parseInt(document.getElementById('mzLives').value),
++                trapsEnabled: document.getElementById('mzTraps').checked,
++                limitedView: document.getElementById('mzLimited').checked
++            };
++            socket.emit('startMazeGame', settings);
++        }
++
++        socket.on("mazeGameState", (mGame) => {
++            currentMazeGameData = mGame;
++            updateMazeUI();
++        });
++
++        function updateMazeUI() {
++            if (!currentMazeGameData) return;
++            const mGame = currentMazeGameData;
++            
++            const activeArea = document.getElementById('mzActiveArea');
++            const regScreen = document.getElementById('mzRegistrationScreen');
++            const endScreen = document.getElementById('mzEndScreen');
++            
++            if (!mGame.isActive) {
++                // Keep widget display as is, user can close it.
++                // Reset to default
++                regScreen.style.display = 'none';
++                activeArea.style.display = 'none';
++                endScreen.style.display = 'none';
++                return;
++            } else {
++                document.getElementById('widget-maze-game').style.display = 'flex';
++            }
++
++            if (mGame.phase !== 'ended') endScreen.style.display = 'none';
++
++            if (mGame.phase === 'registration') {
++                regScreen.style.display = 'flex';
++                activeArea.style.display = 'none';
++                document.getElementById('mzWaitCount').innerText = mGame.registeredPlayers.length;
++                document.getElementById('mzWaitList').innerHTML = mGame.registeredPlayers.map(p => <div>@ + p.nickname + </div>).join('') || '<span style="color:#666">??????? ??????????...</span>';
++                
++                const select = document.getElementById('mzPlayerSelect');
++                const currentVal = select.value;
++                select.innerHTML = <option value="">?? ?????????? ???????</option> + mGame.registeredPlayers.map(p => <option value="${p.uniqueId}" >@</option>).join('');
++                if (currentVal && mGame.registeredPlayers.find(p=>p.uniqueId===currentVal)) select.value = currentVal;
++            } else if (mGame.phase === 'playing' || mGame.phase === 'ended') {
++                regScreen.style.display = 'none';
++                activeArea.style.display = 'flex';
++                document.getElementById('mazeGameSettings').style.display = 'none';
++                
++                if (mGame.selectedPlayer) document.getElementById('mzActivePlayer').innerText = "@" + mGame.selectedPlayer.nickname;
++                document.getElementById('mzActiveTime').innerText =  0:;
++                document.getElementById('mzLivesContainer').innerHTML = '??'.repeat(mGame.lives) + '??'.repeat(mGame.initialLives - mGame.lives);
++                
++                renderMazeGrid();
++            }
++        }
++
++        function renderMazeGrid() {
++            if(!currentMazeGameData) return;
++            const container = document.getElementById('mzGridContainer');
++            const m = currentMazeGameData;
++            
++            container.innerHTML = '';
++            container.style.gridTemplateColumns = 
+epeat(, 20px);
++            container.style.gridTemplateRows = 
+epeat(, 20px);
++
++            let startY = 0, endY = m.height - 1;
++            let startX = 0, endX = m.width - 1;
++
++            if (m.limitedView) {
++                startY = Math.max(0, m.playerPos.y - 2);
++                endY = Math.min(m.height - 1, m.playerPos.y + 2);
++                startX = Math.max(0, m.playerPos.x - 2);
++                endX = Math.min(m.width - 1, m.playerPos.x + 2);
++
++                // Pad borders if out of bounds so the grid stays exactly 5x5 visually
++                const padTop = Math.max(0, 2 - m.playerPos.y);
++                const padLeft = Math.max(0, 2 - m.playerPos.x);
++                container.style.paddingTop = ${padTop * 21 + 5}px;
++                container.style.paddingLeft = ${padLeft * 21 + 5}px;
++                container.style.width = 110px; 
++                container.style.height = 110px;
++                container.style.justifyContent = 'start';
++                container.style.alignContent = 'start';
++            } else {
++                container.style.padding = '5px';
++                container.style.width = 'fit-content';
++                container.style.height = 'fit-content';
++                container.style.justifyContent = 'center';
++            }
++
++            for (let y = startY; y <= endY; y++) {
++                for (let x = startX; x <= endX; x++) {
++                    const cell = document.createElement('div');
++                    cell.style.width = '20px';
++                    cell.style.height = '20px';
++                    cell.style.display = 'flex';
++                    cell.style.alignItems = 'center';
++                    cell.style.justifyContent = 'center';
++                    cell.style.fontSize = '14px';
++
++                    if (y === m.playerPos.y && x === m.playerPos.x) {
++                        cell.innerText = '??';
++                    } else if (y === m.exitPos.y && x === m.exitPos.x) {
++                        cell.innerText = '??';
++                    } else if (m.maze[y][x] === 1) {
++                        cell.style.backgroundColor = '#444'; // Wall
++                        cell.style.borderRadius = '3px';
++                    } else if (m.maze[y][x] === 2) {
++                        cell.innerText = '??'; // Trap
++                    } else {
++                        cell.style.backgroundColor = '#222'; // Path
++                        cell.style.borderRadius = '3px';
++                    }
++                    container.appendChild(cell);
++                }
++            }
++        }
++
++        socket.on("mazeGameRegistered", (players) => {
++            if(currentMazeGameData) {
++                currentMazeGameData.registeredPlayers = players;
++                updateMazeUI();
++            }
++        });
++
++        socket.on("mazeGameTick", (data) => {
++            if(currentMazeGameData) {
++                currentMazeGameData.remainingTime = data.remainingTime;
++                document.getElementById('mzActiveTime').innerText =  0:;
++            }
++        });
++
++        socket.on("mazeGameMove", (data) => {
++            if(currentMazeGameData) {
++                currentMazeGameData.playerPos = data.playerPos;
++                currentMazeGameData.remainingTime = data.remainingTime;
++                currentMazeGameData.lives = data.lives;
++                updateMazeUI();
++
++                const feed = document.getElementById('mzActionFeed');
++                let div = document.createElement('div');
++                div.innerHTML = <span style="color:#4169E1;">@</span>: ;
++                if(data.feedbacks.length > 0) {
++                    div.innerHTML += <br><span style="color:#ff3b5c; font-size:10px;"></span>;
++                }
++                feed.prepend(div);
++                if (feed.children.length > 20) feed.removeChild(feed.lastChild);
++            }
++        });
++
++        socket.on("mazeGameEnded", (data) => {
++            if(currentMazeGameData) {
++                currentMazeGameData.phase = 'ended';
++                const endScreen = document.getElementById('mzEndScreen');
++                endScreen.style.display = 'flex';
++                
++                if (data.stopped) {
++                    document.getElementById('mzEndTitle').innerText = '??';
++                    document.getElementById('mzEndSubtitle').innerText = '???? ?????';
++                    document.getElementById('mzEndMsg').innerText = '???????? ??????? ??????? ????????.';
++                } else if (data.winner) {
++                    document.getElementById('mzEndTitle').innerText = '??';
++                    document.getElementById('mzEndSubtitle').innerText = '????????!';
++                    document.getElementById('mzEndSubtitle').style.color = '#4CAF50';
++                    document.getElementById('mzEndMsg').innerText = ??????! ?????? ?? ?????? ???????.;
++                } else if (data.reason === 'lives') {
++                    document.getElementById('mzEndTitle').innerText = '??';
++                    document.getElementById('mzEndSubtitle').innerText = '???????? ????? ????!';
++                    document.getElementById('mzEndSubtitle').style.color = '#ff3b5c';
++                    document.getElementById('mzEndMsg').innerText = ????? ?????????? ???? ????.;
++                } else {
++                    document.getElementById('mzEndTitle').innerText = '?';
++                    document.getElementById('mzEndSubtitle').innerText = '??? ????? ???!';
++                    document.getElementById('mzEndSubtitle').style.color = '#ff3b5c';
++                    document.getElementById('mzEndMsg').innerText = ???????? ?? ???? ??????????? ???????.;
++                }
++            }
++        });
+         // Custom Popup UI Logic
+         function openModal(title, contentHtml) {
+             let modal = document.getElementById("customModal");
+@@ -1913,4 +2224,7 @@
+         });
+     </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>
++
++
++
