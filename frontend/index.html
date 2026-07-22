@@ -277,6 +277,28 @@
         .fullscreen-widget #mzFsSettingsBtn:hover, .fullscreen-widget #mzToggleStretchBtn:hover, .fullscreen-widget #mzToggleControlsBtn:hover {
             opacity: 1;
         }
+        .fullscreen-widget ~ .menu-toggle,
+        .fullscreen-widget ~ #sideMenu .menu-toggle {
+            opacity: 0.35 !important;
+            transition: opacity 0.2s ease;
+        }
+        .fullscreen-widget ~ .menu-toggle:hover {
+            opacity: 1 !important;
+        }
+        body:has(.fullscreen-widget) .menu-toggle {
+            opacity: 0.35 !important;
+            transition: opacity 0.2s ease;
+        }
+        body:has(.fullscreen-widget) .menu-toggle:hover {
+            opacity: 1 !important;
+        }
+        body:has(.fullscreen-widget) #widget-controls {
+            opacity: 0.35 !important;
+            transition: opacity 0.2s ease;
+        }
+        body:has(.fullscreen-widget) #widget-controls:hover {
+            opacity: 1 !important;
+        }
         .mz-exit-fs {
             display: none;
             position: absolute;
@@ -652,7 +674,6 @@
 
             <!-- Active Game Area -->
             <div id="mzActiveArea" style="width: 100%; display: none; flex-direction: column; align-items: center; height: 100%;">
-                
                 <div style="display: flex; justify-content: space-between; width: 100%; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 8px; box-sizing: border-box;" class="mz-top-hud">
                     <div style="display: flex; flex-direction: column;">
                         <span style="color: #ccc; font-size: 12px;">👤 یاریزان</span>
@@ -668,25 +689,9 @@
                     </div>
                 </div>
 
-                <!-- Grid -->
                 <div id="mzGridContainer" style="background: #111; padding: 5px; border-radius: 5px; display: grid; gap: 1px; width: fit-content; margin: 5px auto; overflow: auto; max-width: 100%; max-height: 65vh; justify-content: center;">
                 </div>
 
-                <!-- Fullscreen Stretch Controls -->
-                <div id="mzStretchControls" style="display: none; position: absolute; bottom: 20px; left: 20px; z-index: 101; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 10px; flex-direction: column; gap: 10px;">
-                    <div style="display: flex; gap: 10px;">
-                        <button class="menu-btn" onclick="stretchMaze(0, -5)" style="background: #333;">↕️ بچووککردنەوەی درێژی</button>
-                        <button class="menu-btn" onclick="stretchMaze(0, 5)" style="background: #4CAF50;">↕️ گەورەکردنی درێژی</button>
-                    </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="menu-btn" onclick="stretchMaze(-5, 0)" style="background: #333;">↔️ بچووککردنەوەی پانی</button>
-                        <button class="menu-btn" onclick="stretchMaze(5, 0)" style="background: #2196F3;">↔️ گەورەکردنی پانی</button>
-                    </div>
-                </div>
-                <button id="mzToggleStretchBtn" style="display: none; position: absolute; bottom: 20px; left: 20px; z-index: 102; background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="document.getElementById('mzStretchControls').style.display = document.getElementById('mzStretchControls').style.display === 'none' ? 'flex' : 'none'">📐 ڕێکخستنی قەبارە</button>
-                <button id="mzToggleControlsBtn" style="display: none; position: absolute; bottom: 20px; left: 160px; z-index: 102; background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="document.querySelector('.mz-bottom-controls').classList.toggle('force-show')">🎮 کۆنترۆڵەکان</button>
-
-                <button class="mz-exit-fs" onclick="exitMazeFullscreen()">✖ دەرچوون لە شاشەی تەواو</button>
 
                 <!-- Controls & Feed -->
                 <div class="mz-bottom-controls" style="display: flex; width: 100%; gap: 10px; margin-top: 10px; flex-grow: 1; min-height: 0;">
@@ -709,6 +714,21 @@
                 <div id="mzEndMsg" style="font-size: 16px; color: #ccc; margin-bottom: 20px;">@username نەیتوانی لە مازەکە دەربچێت.</div>
                 <button class="menu-btn" onclick="document.getElementById('mzEndScreen').style.display='none'" style="background: #333;">داخستن</button>
             </div>
+
+            <!-- Fullscreen Overlay Controls (OUTSIDE mzActiveArea so always visible in fullscreen) -->
+            <div id="mzStretchControls" style="display: none; position: absolute; bottom: 70px; left: 20px; z-index: 101; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 10px; flex-direction: column; gap: 10px;">
+                <div style="display: flex; gap: 10px;">
+                    <button class="menu-btn" onclick="stretchMaze(0, -5)" style="background: #333;">↕️ بچووککردنەوەی درێژی</button>
+                    <button class="menu-btn" onclick="stretchMaze(0, 5)" style="background: #4CAF50;">↕️ گەورەکردنی درێژی</button>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="menu-btn" onclick="stretchMaze(-5, 0)" style="background: #333;">↔️ بچووککردنەوەی پانی</button>
+                    <button class="menu-btn" onclick="stretchMaze(5, 0)" style="background: #2196F3;">↔️ گەورەکردنی پانی</button>
+                </div>
+            </div>
+            <button id="mzToggleStretchBtn" style="display: none; position: absolute; bottom: 20px; left: 20px; z-index: 102; background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="document.getElementById('mzStretchControls').style.display = document.getElementById('mzStretchControls').style.display === 'none' ? 'flex' : 'none'">📐 ڕێکخستنی قەبارە</button>
+            <button id="mzToggleControlsBtn" style="display: none; position: absolute; bottom: 20px; left: 160px; z-index: 102; background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="document.querySelector('.mz-bottom-controls').classList.toggle('force-show')">🎮 کۆنترۆڵەکان</button>
+            <button class="mz-exit-fs" onclick="exitMazeFullscreen()">✖ دەرچوون لە شاشەی تەواو</button>
 
         </div>
         <div class="resize-handle"></div>
@@ -1096,8 +1116,8 @@
             if(isLiveMode) {
                 document.body.classList.add('live-mode');
                 document.getElementById('liveModeBtn').innerText = "🛑 دەرچوون لە لایڤ مۆد";
-                // Show camera controls in floating panel by default when entering mode
-                document.querySelectorAll('.widget-card').forEach(w => w.style.display = 'flex');
+                // Only show widget-controls by default, all others stay as user set them
+                document.getElementById('widget-controls').style.display = 'flex';
                 initDraggableWidgets(); 
             } else {
                 document.body.classList.remove('live-mode');
