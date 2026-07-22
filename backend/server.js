@@ -87,7 +87,7 @@ function parseEasternNumerals(str) {
 
 // CLOUDFLARE D1 DATABASE CONFIGURATION
 const D1_API_URL = "https://api.cloudflare.com/client/v4/accounts/680373c66f54cff8c03c582df23f66f9/d1/database/c989670d-f06b-4ca0-9f5e-473d2ff655f4/query";
-const D1_API_TOKEN = process.env.CLOUDFLARE_D1_TOKEN;
+const D1_API_TOKEN = process.env.CF_API_TOKEN;
 
 async function queryD1(sql, params = []) {
     try {
