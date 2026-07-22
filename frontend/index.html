@@ -307,18 +307,21 @@
     <div id="sideMenu" class="glass-panel">
         <div class="menu-toggle" onclick="document.getElementById('sideMenu').classList.toggle('open')">☰</div>
         <h2 style="color: white; margin-top: 0; font-size: 20px; border-bottom: 1px solid #444; padding-bottom: 10px;">ویجێتەکان (Widgets)</h2>
-        <button class="menu-btn" onclick="toggleWidget('widget-comments')">💬 کۆمێنتە ڕاستەوخۆکان</button>
-        <button class="menu-btn" onclick="toggleWidget('widget-likes')">❤️ کۆکراوەی لایکەکان</button>
-        <button class="menu-btn" onclick="toggleWidget('widget-gifts')">🎁 کۆکراوەی دیارییەکان</button>
-        <button class="menu-btn" onclick="toggleWidget('widget-shares')">✨ لیستی شەیرەکان</button>
-        <button class="menu-btn" onclick="toggleWidget('widget-search')">🔍 گەڕانی کۆمێنت</button>
-        <button class="menu-btn" onclick="toggleWidget('widget-maze-game')">🧩 پازڵی دەرچوون</button>
-        <button class="menu-btn" onclick="toggleWidget('widget-number-game')">🎯 یاری ژمارەی نهێنی</button>
-        <button class="menu-btn" onclick="toggleWidget('widget-all-in-one')" style="background: linear-gradient(135deg, #ff3b5c, #9c27b0); border: 1px solid white;">📱 مۆبایل - هەمووی پێکەوە</button>
-        <div style="border-top: 1px solid #444; margin: 10px 0;"></div>
-        <button class="menu-btn" style="background: #9c27b0;" onclick="autoArrangeWidgets()">📐 ڕێکخستنی ئۆتۆماتیکی</button>
-        <button class="menu-btn" style="background: #4CAF50;" onclick="saveSessionToDB()">💾 پاشەکەوتکردن (سێرڤەر)</button>
-        <button class="menu-btn" style="background: #2196F3;" onclick="viewHistory()">📜 مێژووی دانیشتنەکان</button>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; overflow-x: hidden; padding-bottom: 20px; flex: 1; min-height: 0; padding-right: 5px;">
+            <button class="menu-btn" onclick="toggleWidget('widget-comments')">💬 کۆمێنتە ڕاستەوخۆکان</button>
+            <button class="menu-btn" onclick="toggleWidget('widget-likes')">❤️ کۆکراوەی لایکەکان</button>
+            <button class="menu-btn" onclick="toggleWidget('widget-gifts')">🎁 کۆکراوەی دیارییەکان</button>
+            <button class="menu-btn" onclick="toggleWidget('widget-shares')">✨ لیستی شەیرەکان</button>
+            <button class="menu-btn" onclick="toggleWidget('widget-search')">🔍 گەڕانی کۆمێنت</button>
+            <button class="menu-btn" onclick="toggleWidget('widget-maze-game')">🧩 پازڵی دەرچوون</button>
+            <button class="menu-btn" onclick="toggleWidget('widget-number-game')">🎯 یاری ژمارەی نهێنی</button>
+            <button class="menu-btn" onclick="toggleWidget('widget-all-in-one')" style="background: linear-gradient(135deg, #ff3b5c, #9c27b0); border: 1px solid white;">📱 مۆبایل - هەمووی پێکەوە</button>
+            <div style="border-top: 1px solid #444; margin: 10px 0;"></div>
+            <button class="menu-btn" style="background: #9c27b0;" onclick="autoArrangeWidgets()">📐 ڕێکخستنی ئۆتۆماتیکی</button>
+            <button class="menu-btn" style="background: #4CAF50;" onclick="saveSessionToDB()">💾 پاشەکەوتکردن (سێرڤەر)</button>
+            <button class="menu-btn" style="background: #2196F3;" onclick="viewHistory()">📜 مێژووی دانیشتنەکان</button>
+        </div>
     </div>
 
     
