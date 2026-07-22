@@ -281,7 +281,7 @@
             gap: 10px !important;
             height: auto !important;
         }
-        .fullscreen-widget #mzFsTimer {
+        .fullscreen-widget.mz-hide-ui #mzFsTimer {
             display: block !important;
         }
         .mz-fs-toolbar {
@@ -657,8 +657,11 @@
         </div>
         <div class="widget-content" style="padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; flex: 1; min-height: 0; width: 100%;">
             
+            <!-- Floating Timer for Fullscreen/Hide UI mode -->
+            <div id="mzFsTimer" style="display: none; position: relative; margin-bottom: 10px; z-index: 101; font-size: 32px; font-weight: bold; color: #ff3b5c; font-family: monospace; text-shadow: 0 0 10px rgba(0,0,0,0.95); text-align: center;">00:60</div>
+
             <!-- Settings Panel -->
-            <div id="mazeGameSettings" style="display: none; flex-direction: column; width: 100%; gap: 10px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 10px; box-sizing: border-box; z-index: 20; position: absolute; top: 0; left: 0;">
+            <div id="mazeGameSettings" style="display: none; flex-direction: column; width: 100%; gap: 10px; background: rgba(13, 27, 42, 0.98); padding: 15px; border-radius: 10px; box-sizing: border-box; z-index: 99999; position: absolute; top: 0; left: 0; bottom: 0; overflow-y: auto;">
                 <div style="display: flex; gap: 10px;">
                     <select id="mzLevel" class="search-bar" style="margin-bottom: 0; padding: 8px; flex: 1;">
                         <option value="11">🟢 بچووک (10 x 10)</option>
@@ -752,9 +755,6 @@
                 <div id="mzEndMsg" style="font-size: 16px; color: #ccc; margin-bottom: 20px;">@username نەیتوانی لە مازەکە دەربچێت.</div>
                 <button class="menu-btn" onclick="document.getElementById('mzEndScreen').style.display='none'" style="background: #333;">داخستن</button>
             </div>
-
-            <!-- Floating Timer for Fullscreen/Hide UI mode -->
-            <div id="mzFsTimer" style="display: none; position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 101; font-size: 32px; font-weight: bold; color: #ff3b5c; font-family: monospace; text-shadow: 0 0 10px rgba(0,0,0,0.95); pointer-events: none;">00:60</div>
 
             <!-- Controls Popup (Modal Dialog) -->
             <div id="mzControlsPopup" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(13, 27, 42, 0.98); border: 2px solid #6366f1; border-radius: 15px; padding: 20px; z-index: 120; box-shadow: 0 10px 30px rgba(0,0,0,0.8); width: 85%; max-width: 300px; flex-direction: column; gap: 12px; color: white;">
