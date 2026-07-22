@@ -116,6 +116,19 @@
             .controls input, .controls button { width: 100%; margin: 5px 0; box-sizing: border-box; }
             .save-btn { margin-left: 0; }
             #statusMessage { margin: 10px 0; text-align: center; }
+            
+            /* Ultra Compact Mobile UI for Comments Widget */
+            #widget-search .widget-header { padding: 4px 8px !important; }
+            #widget-search .widget-header span { font-size: 14px !important; }
+            #widget-search .widget-btn, #widget-search .widget-close { padding: 4px 8px !important; font-size: 12px !important; margin: 0 1px !important; }
+            #widget-search .search-bar-container { gap: 5px !important; margin-bottom: 5px !important; padding: 0 !important; }
+            #widget-search .search-bar { padding: 8px 10px !important; font-size: 13px !important; }
+            #widget-search .menu-btn { padding: 8px 10px !important; font-size: 13px !important; }
+            #widget-search .scroll-controls { flex-direction: row !important; padding: 6px 8px !important; align-items: center !important; justify-content: space-between !important; gap: 0 !important; border-radius: 8px !important; }
+            #widget-search .scroll-controls label { font-size: 12px !important; }
+            #widget-search .scroll-controls input[type="checkbox"] { width: 14px !important; height: 14px !important; }
+            #widget-search .speed-container { max-width: 140px !important; gap: 4px !important; margin-left: auto !important; }
+            #widget-search .speed-container span { font-size: 12px !important; }
         }
         
         @media (max-width: 768px) and (orientation: portrait) {
@@ -373,16 +386,16 @@
             </div>
         </div>
         <div class="widget-content">
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+            <div class="search-bar-container" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
                 <div style="display: flex; gap: 10px;">
                     <input type="text" id="searchInput" class="search-bar" style="margin-bottom: 0; padding: 12px; font-size: 16px; flex: 1;" placeholder="گەڕان بەدوای وشە یان ناو..." onkeyup="renderComments()" />
                     <button class="menu-btn" onclick="showDuplicateComments()" style="white-space: nowrap; margin-bottom: 0; padding: 10px; flex-shrink: 0;">🔁 دووبارە</button>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: 600; color: white;">
+                <div class="scroll-controls" style="display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: 600; color: white; white-space: nowrap;">
                         <input type="checkbox" id="smoothScrollToggle" onchange="toggleSmoothScroll()" style="width: 18px; height: 18px; accent-color: #FF3B5C;" checked> سکرۆڵی هێواش
                     </label>
-                    <div id="scrollSpeedContainer" style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                    <div id="scrollSpeedContainer" class="speed-container" style="display: flex; align-items: center; gap: 8px; width: 100%;">
                         <span style="font-size: 16px;" title="خاو">🐢</span>
                         <input type="range" id="scrollSpeed" min="1" max="10" value="10" style="flex: 1; min-width: 0; accent-color: #FF3B5C;" oninput="updateScrollSpeed()">
                         <span style="font-size: 16px;" title="خێرا">🚗</span>
@@ -1672,7 +1685,7 @@
         }
     </script>
     <!-- AutoAnimate for Smooth List Reordering -->
-    <script src="https://cdn.jsdelivr.net/npm/@formkit/auto-animate@0.8.2/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@formkit/auto-animate/index.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             if (typeof autoAnimate !== 'undefined') {
