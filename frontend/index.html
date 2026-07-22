@@ -222,8 +222,54 @@
             margin: 0 !important;
             resize: none !important;
         }
+        .fullscreen-widget .widget-header {
+            display: none !important;
+        }
         .fullscreen-widget .widget-content {
-            overflow: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fullscreen-widget #mzGridContainer {
+            max-height: 100vh !important;
+            height: 100vh !important;
+            width: 100vw !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+        }
+        .fullscreen-widget .mz-top-hud {
+            position: absolute !important;
+            top: 10px !important;
+            left: 10px !important;
+            right: 10px !important;
+            z-index: 100 !important;
+            background: rgba(0,0,0,0.6) !important;
+        }
+        .fullscreen-widget .mz-bottom-controls {
+            display: none !important;
+        }
+        .fullscreen-widget .mz-exit-fs {
+            display: block !important;
+        }
+        .mz-exit-fs {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255,59,92,0.9);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 101;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
         /* Container Queries for Auto-Scaling inside Widgets */
@@ -585,25 +631,26 @@
             <!-- Active Game Area -->
             <div id="mzActiveArea" style="width: 100%; display: none; flex-direction: column; align-items: center; height: 100%;">
                 
-                <div style="display: flex; justify-content: space-between; width: 100%; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 8px; box-sizing: border-box;">
+                <div style="display: flex; justify-content: space-between; width: 100%; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 8px; box-sizing: border-box;" class="mz-top-hud">
                     <div style="display: flex; flex-direction: column;">
                         <span style="color: #ccc; font-size: 12px;">👤 یاریزان</span>
                         <span id="mzActivePlayer" style="font-weight: bold; color: white; font-size: 16px;">@username</span>
                     </div>
+                    <div id="mzLivesContainer" style="font-size: 20px; letter-spacing: 5px; margin: 0 10px;">❤️❤️❤️</div>
                     <div style="display: flex; flex-direction: column; align-items: flex-end;">
                         <span style="color: #ccc; font-size: 12px;">⏱️ کات</span>
                         <span id="mzActiveTime" style="font-weight: bold; color: #ff3b5c; font-size: 18px; font-family: monospace;">00:60</span>
                     </div>
                 </div>
 
-                <div id="mzLivesContainer" style="font-size: 20px; letter-spacing: 5px; margin: 5px 0;">❤️❤️❤️</div>
-
                 <!-- Grid -->
                 <div id="mzGridContainer" style="background: #111; padding: 5px; border-radius: 5px; display: grid; gap: 1px; width: fit-content; margin: 5px auto; overflow: auto; max-width: 100%; max-height: 65vh; justify-content: center;">
                 </div>
 
+                <button class="mz-exit-fs" onclick="document.getElementById('widget-maze-game').classList.remove('fullscreen-widget')">✖ دەرچوون لە شاشەی تەواو</button>
+
                 <!-- Controls & Feed -->
-                <div style="display: flex; width: 100%; gap: 10px; margin-top: 10px; flex-grow: 1; min-height: 0;">
+                <div class="mz-bottom-controls" style="display: flex; width: 100%; gap: 10px; margin-top: 10px; flex-grow: 1; min-height: 0;">
                     <div style="flex: 1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; font-size: 12px; color: #ccc;">
                         <b style="color: white; display: block; margin-bottom: 5px;">🎮 کۆنترۆڵ:</b>
                         <div>ر = ڕاست</div>
