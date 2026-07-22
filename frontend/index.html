@@ -453,6 +453,23 @@
             object-fit: cover;
             box-shadow: 0 0 10px rgba(255, 59, 92, 0.5);
         }
+        .vr-exit-fs {
+            display: none;
+            background: rgba(255, 59, 92, 0.95);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            z-index: 1000;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(255, 59, 92, 0.4);
+        }
+        .fullscreen-widget .vr-exit-fs {
+            display: block !important;
+        }
         .race-avatar .info {
             background: rgba(0,0,0,0.7);
             padding: 2px 8px;
@@ -745,7 +762,7 @@
     </div>
 
     <!-- VIEWER RACE WIDGET -->
-    <div id="widget-viewer-race" class="widget-card" style="display: none; background: linear-gradient(135deg, #1b263b, #0d1b2a); min-width: 400px; width: 450px; height: 500px;">
+    <div id="widget-viewer-race" class="widget-card" style="display: none; background: linear-gradient(135deg, #1b263b, #0d1b2a); min-width: 250px; width: 450px; height: 500px;">
         <div class="widget-header" style="background: rgba(0, 0, 0, 0.4);">
             <span>🏁 پێشبڕکێی بینەران (Viewer Race)</span>
             <div style="display:flex; gap:2px;">
@@ -803,6 +820,9 @@
                 <div id="vrWinnerScore" style="color: #4CAF50; font-size: 24px; font-weight: bold;">سەرکەوت!</div>
                 <button class="menu-btn" onclick="document.getElementById('vrWinnerOverlay').style.display='none'" style="margin-top: 20px; background: #333; min-width: 150px;">داخستن</button>
             </div>
+            
+            <!-- Exit Fullscreen Button (Only visible in fullscreen) -->
+            <button class="vr-exit-fs" onclick="document.getElementById('widget-viewer-race').classList.remove('fullscreen-widget')">✖ دەرچوون لە شاشەی تەواو</button>
             
         </div>
         <div class="resize-handle"></div>
