@@ -110,9 +110,27 @@ async function recoverActiveStream() {
                 globalStream.isActive = true;
                 globalStream.manuallyStopped = false;
                 globalStream.startedAt = savedState.startedAt;
+                
+                // --- SANITIZE BROKEN CHECKPOINT STATE ---
+                if (savedState.stats) {
+                    Object.keys(savedState.stats).forEach(k => {
+                        if (k === "undefined" || !savedState.stats[k].uniqueId || String(savedState.stats[k].uniqueId).includes("nown")) {
+                            delete savedState.stats[k];
+                        }
+                    });
+                }
+                if (savedState.comments) {
+                    savedState.comments = savedState.comments.filter(c => c.uniqueId && c.uniqueId !== "undefined" && !String(c.uniqueId).includes("nown"));
+                }
+                
                 globalStream.stats = savedState.stats || {};
                 globalStream.comments = savedState.comments || [];
-                globalStream.leaderboard = savedState.leaderboard;
+                
+                // Re-sort leaderboard after sanitization
+                const sortedUsers = Object.values(globalStream.stats)
+                    .sort((a, b) => (b.giftCount * 1000 + b.commentCount * 10 + b.actualTotalLikes) - (a.giftCount * 1000 + a.commentCount * 10 + a.actualTotalLikes))
+                    .slice(0, 100);
+                globalStream.leaderboard = { totalUniqueUsers: Object.keys(globalStream.stats).length, topUsers: sortedUsers };
                 globalStream.pollKeywords = savedState.pollKeywords || [];
                 globalStream.pollCounts = savedState.pollCounts || {};
                 globalStream.viewerCount = savedState.viewerCount || 0;
@@ -195,12 +213,17 @@ function emitPollUpdate() {
 }
 
 function getUser(data) {
-    const uid = data.uniqueId;
-    if (!globalStream.stats[uid]) {
-        globalStream.stats[uid] = { 
-            uniqueId: uid, 
-            nickname: data.nickname || "Unknown", 
-            profilePictureUrl: data.profilePictureUrl || "https://www.tiktok.com/favicon.ico", 
+    const userObj = data.user || data;
+    const uid = userObj.uniqueId;
+    
+    // If uniqueId is completely missing, generate a random temporary one so we don't merge all unknowns
+    const finalUid = uid || ("unknown_" + Math.random().toString(36).substr(2, 9));
+    
+    if (!globalStream.stats[finalUid]) {
+        globalStream.stats[finalUid] = { 
+            uniqueId: finalUid, 
+            nickname: userObj.nickname || userObj.displayId || "Unknown", 
+            profilePictureUrl: userObj.profilePictureUrl || userObj.avatarUrl || "https://www.tiktok.com/favicon.ico", 
             commentCount: 0, 
             likeCount: 0, 
             actualTotalLikes: 0, 
@@ -208,7 +231,7 @@ function getUser(data) {
             shareCount: 0 
         };
     }
-    return globalStream.stats[uid];
+    return globalStream.stats[finalUid];
 }
 
 function emitUpdate() {
