@@ -150,6 +150,18 @@
             .widget-header { padding: 8px 12px; font-size: 14px; }
             .item { padding: 4px 8px; }
         }
+        }
+        
+        /* NUMBER GAME STYLES */
+        #ngTimer.urgent { animation: flashRed 1s infinite; font-size: 56px !important; color: #ff0000 !important; text-shadow: 0 0 30px #ff0000 !important; }
+        @keyframes flashRed { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
+        
+        .ng-clue-badge { background: rgba(255, 255, 255, 0.1); border-left: 3px solid #ff3b5c; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 14px; animation: slideInFade 0.4s ease; }
+        .ng-guess-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(0,0,0,0.4); border-radius: 8px; font-size: 14px; margin-bottom: 5px; }
+        .ng-guess-hot { border-left: 3px solid #ff3b5c; }
+        .ng-guess-cold { border-left: 3px solid #2196F3; }
+        .ng-guess-exact { border-left: 3px solid #4CAF50; animation: flashGreen 1s infinite; }
+        @keyframes flashGreen { 0% { background: rgba(76, 175, 80, 0.2); } 50% { background: rgba(76, 175, 80, 0.5); } 100% { background: rgba(76, 175, 80, 0.2); } }
     </style>
 </head>
 <body>
@@ -300,6 +312,7 @@
         <button class="menu-btn" onclick="toggleWidget('widget-gifts')">🎁 کۆکراوەی دیارییەکان</button>
         <button class="menu-btn" onclick="toggleWidget('widget-shares')">✨ لیستی شەیرەکان</button>
         <button class="menu-btn" onclick="toggleWidget('widget-search')">🔍 گەڕانی کۆمێنت</button>
+        <button class="menu-btn" onclick="toggleWidget('widget-number-game')">🎯 یاری ژمارەی نهێنی</button>
         <button class="menu-btn" onclick="toggleWidget('widget-all-in-one')" style="background: linear-gradient(135deg, #ff3b5c, #9c27b0); border: 1px solid white;">📱 مۆبایل - هەمووی پێکەوە</button>
         <div style="border-top: 1px solid #444; margin: 10px 0;"></div>
         <button class="menu-btn" style="background: #9c27b0;" onclick="autoArrangeWidgets()">📐 ڕێکخستنی ئۆتۆماتیکی</button>
@@ -404,6 +417,72 @@
                 </div>
             </div>
             <div id="searchList"></div>
+        </div>
+        <div class="resize-handle"></div>
+    </div>
+
+    <!-- SECRET NUMBER GAME WIDGET -->
+    <div id="widget-number-game" class="widget-card" style="display: none; background: linear-gradient(135deg, #1b0a2a, #0b0213); min-width: 320px; width: 350px; height: 500px;">
+        <div class="widget-header">
+            <span>🎯 یاری ژمارەی نهێنی</span>
+            <div style="display:flex; gap:2px;">
+                <span class="widget-btn" onclick="document.getElementById('numberGameSettings').style.display = document.getElementById('numberGameSettings').style.display === 'none' ? 'flex' : 'none'" title="ڕێکخستنەکان">⚙️</span>
+                <span class="widget-btn" onclick="zoomWidget('widget-number-game', -1)">-</span>
+                <span class="widget-btn" onclick="zoomWidget('widget-number-game', 1)">+</span>
+                <span class="widget-close" onclick="minimizeWidget('widget-number-game')">_</span>
+                <span class="widget-close" onclick="toggleWidget('widget-number-game')">✖</span>
+            </div>
+        </div>
+        <div class="widget-content" style="padding: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <div id="numberGameSettings" style="display: none; flex-direction: column; width: 100%; gap: 10px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; box-sizing: border-box;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="ngMin" placeholder="کەمترین" value="1" class="search-bar" style="margin-bottom: 0; padding: 8px;">
+                    <input type="number" id="ngMax" placeholder="زۆرترین" value="500" class="search-bar" style="margin-bottom: 0; padding: 8px;">
+                </div>
+                <input type="number" id="ngDuration" placeholder="ماوەی یاری (چرکە)" value="60" class="search-bar" style="margin-bottom: 0; padding: 8px;">
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: bold; color: white;">
+                    <input type="checkbox" id="ngQuestionn" style="width: 18px; height: 18px; accent-color: #FF3B5C;"> Questionn (نەبردنەوە بە تەواوی)
+                </label>
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: bold; color: white;">
+                    <input type="checkbox" id="ngAutoNext" style="width: 18px; height: 18px; accent-color: #FF3B5C;"> یاریی خۆکارانەی داهاتوو
+                </label>
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <button class="save-btn" onclick="startNumberGame()" style="flex: 1; padding: 8px;">دەستپێکردن</button>
+                    <button class="stop-btn" onclick="stopNumberGame()" style="flex: 1; padding: 8px;">وەستان</button>
+                </div>
+            </div>
+
+            <div id="numberGameOverlay" style="display: none; position: absolute; top: 40px; left: 0; width: 100%; height: calc(100% - 40px); background: rgba(0,0,0,0.9); z-index: 10; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
+                <h2 style="margin-bottom: 10px; font-size: 32px;">⏰ کات تەواو بوو!</h2>
+                <div style="font-size: 24px; color: #ccc;">🔐 ژمارەی نهێنی:</div>
+                <div id="ngFinalSecret" style="font-size: 64px; font-weight: bold; color: #ff3b5c; text-shadow: 0 0 20px rgba(255,59,92,0.6); margin: 10px 0;">000</div>
+                
+                <div id="ngFinalWinnerBanner" style="display: none; background: linear-gradient(135deg, #FFD700, #FFA500); color: black; padding: 15px; border-radius: 12px; width: 100%; margin-top: 20px; box-shadow: 0 4px 15px rgba(255,215,0,0.5);">
+                    <div style="font-size: 20px; font-weight: bold;">🏆 براوە: <span id="ngFinalUser">@user</span></div>
+                    <div style="font-size: 18px; margin-top: 5px;">🎯 گومان: <span id="ngFinalGuess">0</span></div>
+                    <div style="font-size: 16px; margin-top: 5px;" id="ngFinalDistance">تەنها X ژمارە دوور بوو!</div>
+                </div>
+                
+                <button class="menu-btn" onclick="document.getElementById('numberGameOverlay').style.display='none'" style="margin-top: 30px; background: #333;">داخستن</button>
+            </div>
+
+            <div id="numberGameActiveArea" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0.5;">
+                <div id="ngTimer" style="font-size: 48px; font-weight: bold; font-family: monospace; color: #ff3b5c; text-shadow: 0 0 15px rgba(255,59,92,0.5); transition: all 0.3s ease;">⏱️ 00:00</div>
+                <div id="ngRange" style="font-size: 18px; color: #ccc; font-weight: bold;">ژمارە: 1 — 500</div>
+                
+                <div id="ngCluesContainer" style="width: 100%; display: flex; flex-direction: column; gap: 5px; margin-top: 5px;"></div>
+
+                <div id="ngClosestBanner" style="display: none; width: 100%; background: linear-gradient(135deg, #FFD700, #FFA500); color: black; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; margin-top: 5px; box-shadow: 0 4px 15px rgba(255,215,0,0.3);">
+                    <div style="font-size: 14px;">🏆 نزیکترین گومان</div>
+                    <div id="ngClosestUser" style="font-size: 18px; margin: 2px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@username</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; opacity: 0.8;">
+                        <span id="ngClosestGuess">گومان: 0</span>
+                        <span id="ngClosestDistance">دووری: 0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="numberGameFeed" style="width: 100%; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;"></div>
         </div>
         <div class="resize-handle"></div>
     </div>
@@ -608,8 +687,46 @@
                          }).join("");
                     }
                 }
+                
+                if (data.numberGame && data.numberGame.isActive) {
+                    document.getElementById("numberGameOverlay").style.display = "none";
+                    document.getElementById("numberGameActiveArea").style.opacity = "1";
+                    document.getElementById("ngRange").innerText = `ژمارە: ${data.numberGame.minNumber} — ${data.numberGame.maxNumber}`;
+                    
+                    const timer = document.getElementById("ngTimer");
+                    timer.innerText = `⏱️ 00:${String(data.numberGame.remainingTime).padStart(2, '0')}`;
+                    if (data.numberGame.remainingTime <= 10) timer.classList.add("urgent");
+                    else timer.classList.remove("urgent");
+                    
+                    const clueCont = document.getElementById("ngCluesContainer");
+                    clueCont.innerHTML = "";
+                    data.numberGame.clues.forEach(c => {
+                        clueCont.innerHTML += `<div class="ng-clue-badge">${c}</div>`;
+                    });
+                    
+                    if (data.numberGame.closestGuess) {
+                        document.getElementById("ngClosestBanner").style.display = "block";
+                        document.getElementById("ngClosestUser").innerText = "@" + data.numberGame.closestGuess.nickname;
+                        document.getElementById("ngClosestGuess").innerText = "گومان: " + data.numberGame.closestGuess.guess;
+                        document.getElementById("ngClosestDistance").innerText = "دووری: " + data.numberGame.closestGuess.distance;
+                    }
+                    
+                    if (data.numberGame.roundEnded) {
+                        // Force show result
+                        document.getElementById("numberGameOverlay").style.display = "flex";
+                        document.getElementById("ngFinalSecret").innerText = data.numberGame.secretNumber;
+                        if (data.numberGame.winner) {
+                            document.getElementById("ngFinalWinnerBanner").style.display = "block";
+                            document.getElementById("ngFinalUser").innerText = "@" + data.numberGame.winner.nickname;
+                            document.getElementById("ngFinalGuess").innerText = data.numberGame.winner.guess;
+                            document.getElementById("ngFinalDistance").innerText = `تەنها ${data.numberGame.winner.distance} ژمارە دوور بوو!`;
+                        } else {
+                            document.getElementById("ngFinalWinnerBanner").style.display = "none";
+                        }
+                    }
+                }
             } else {
-                document.getElementById("statusMessage").innerText = "چاوەڕێی دەستپێکردن...";
+                document.getElementById("statusMessage").innerText = "چاوەڕێی پەیوەندی سێرڤەر...";
                 document.getElementById("statusMessage").style.color = "#aaa";
             }
         });
@@ -895,6 +1012,7 @@
         }
 
         function initDraggableWidgets() {
+            // ... (rest of code logic hidden from replace block)
             document.querySelectorAll('.widget-card').forEach(widget => {
                 // Restore State from localStorage
                 if(widgetState[widget.id]) {
@@ -1015,6 +1133,99 @@
                 }
             });
         }
+
+        // --- NUMBER GAME LOGIC ---
+        function startNumberGame() {
+            const settings = {
+                minNumber: parseInt(document.getElementById("ngMin").value) || 1,
+                maxNumber: parseInt(document.getElementById("ngMax").value) || 500,
+                duration: parseInt(document.getElementById("ngDuration").value) || 60,
+                questionnMode: document.getElementById("ngQuestionn").checked,
+                autoNextRound: document.getElementById("ngAutoNext").checked
+            };
+            socket.emit("startNumberGame", settings);
+        }
+
+        function stopNumberGame() {
+            socket.emit("stopNumberGame");
+        }
+
+        socket.on("numberGameStarted", (data) => {
+            document.getElementById("numberGameOverlay").style.display = "none";
+            document.getElementById("numberGameActiveArea").style.opacity = "1";
+            document.getElementById("ngRange").innerText = `ژمارە: ${data.minNumber} — ${data.maxNumber}`;
+            document.getElementById("ngCluesContainer").innerHTML = `<div class="ng-clue-badge">🎯 ژمارەکە لە نێوان ${data.minNumber} بۆ ${data.maxNumber} ـە</div>`;
+            document.getElementById("ngClosestBanner").style.display = "none";
+            document.getElementById("numberGameFeed").innerHTML = "";
+            document.getElementById("ngTimer").classList.remove("urgent");
+            document.getElementById("ngTimer").innerText = `⏱️ 00:${String(data.duration).padStart(2, '0')}`;
+        });
+
+        socket.on("numberGameTick", (data) => {
+            const timer = document.getElementById("ngTimer");
+            timer.innerText = `⏱️ 00:${String(Math.max(0, data.remainingTime)).padStart(2, '0')}`;
+            if (data.remainingTime <= 10 && data.remainingTime > 0) {
+                timer.classList.add("urgent");
+            } else {
+                timer.classList.remove("urgent");
+            }
+        });
+
+        socket.on("numberGameGuess", (data) => {
+            const feed = document.getElementById("numberGameFeed");
+            let borderClass = "ng-guess-cold";
+            if (data.distance === 0) borderClass = "ng-guess-exact";
+            else if (data.distance <= 20) borderClass = "ng-guess-hot";
+            
+            const el = document.createElement("div");
+            el.className = `ng-guess-item ${borderClass}`;
+            el.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-weight: bold; color: #fff;">@${data.nickname}</span>
+                    <span style="font-size: 11px; color: #ccc;">${data.feedback}</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                    <span style="font-weight: bold; font-size: 16px; color: #ff3b5c;">${data.guess}</span>
+                    <span style="font-size: 11px; color: #aaa;">📏 ${data.distance} دووری</span>
+                </div>
+            `;
+            feed.prepend(el);
+            if (feed.children.length > 50) feed.removeChild(feed.lastChild);
+        });
+
+        socket.on("numberGameClosest", (data) => {
+            document.getElementById("ngClosestBanner").style.display = "block";
+            document.getElementById("ngClosestUser").innerText = "@" + data.nickname;
+            document.getElementById("ngClosestGuess").innerText = "گومان: " + data.guess;
+            document.getElementById("ngClosestDistance").innerText = "دووری: " + data.distance;
+        });
+
+        socket.on("numberGameClue", (clue) => {
+            const cont = document.getElementById("ngCluesContainer");
+            const el = document.createElement("div");
+            el.className = "ng-clue-badge";
+            if (clue.includes("🚨")) el.style.borderLeftColor = "#ff0000";
+            el.innerText = clue;
+            cont.appendChild(el);
+        });
+
+        socket.on("numberGameEnded", (data) => {
+            document.getElementById("numberGameActiveArea").style.opacity = "0.5";
+            document.getElementById("ngTimer").classList.remove("urgent");
+            document.getElementById("ngTimer").innerText = "⏰ 00:00";
+            
+            document.getElementById("numberGameOverlay").style.display = "flex";
+            document.getElementById("ngFinalSecret").innerText = data.secretNumber || "???";
+            
+            if (data.winner) {
+                document.getElementById("ngFinalWinnerBanner").style.display = "block";
+                document.getElementById("ngFinalUser").innerText = "@" + data.winner.nickname;
+                document.getElementById("ngFinalGuess").innerText = data.winner.guess;
+                document.getElementById("ngFinalDistance").innerText = `تەنها ${data.winner.distance} ژمارە دوور بوو!`;
+            } else {
+                document.getElementById("ngFinalWinnerBanner").style.display = "none";
+            }
+        });
         
         window.addEventListener('DOMContentLoaded', () => {
             initDraggableWidgets();

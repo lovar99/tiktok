@@ -39,8 +39,31 @@ let globalStream = {
     reconnectAttempts: 0,
     reconnectTimeoutId: null,
     historySaved: false,
-    checkpointIntervalId: null
+    checkpointIntervalId: null,
+    numberGame: {
+        isActive: false,
+        secretNumber: null,
+        minNumber: 1,
+        maxNumber: 500,
+        duration: 60,
+        questionnMode: false,
+        autoNextRound: false,
+        timerId: null,
+        remainingTime: 0,
+        closestGuess: null,
+        clues: [],
+        availableClues: [],
+        winner: null,
+        roundEnded: false
+    }
 };
+
+function parseEasternNumerals(str) {
+    const numerals = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
+    let converted = str.replace(/[٠-٩]/g, d => numerals[d]);
+    let match = converted.match(/\d+/);
+    return match ? parseInt(match[0], 10) : null;
+}
 
 // CLOUDFLARE D1 DATABASE CONFIGURATION
 const D1_API_URL = "https://api.cloudflare.com/client/v4/accounts/680373c66f54cff8c03c582df23f66f9/d1/database/c989670d-f06b-4ca0-9f5e-473d2ff655f4/query";
@@ -298,6 +321,15 @@ function initializeTikTokConnection(username) {
 
         const commentData = { uniqueId: user.uniqueId, nickname: user.nickname, profilePictureUrl: user.profilePictureUrl, comment: String(chatText) };
         
+        // Secret Number Game Logic
+        const game = globalStream.numberGame;
+        if (game.isActive && !game.roundEnded) {
+            let guessNum = parseEasternNumerals(chatText);
+            if (guessNum !== null && guessNum >= game.minNumber && guessNum <= game.maxNumber) {
+                processNumberGameGuess(user, guessNum);
+            }
+        }
+
         globalStream.comments.push(commentData);
         if(globalStream.comments.length > 500) globalStream.comments.shift();
         
@@ -403,7 +435,141 @@ function resetGlobalStream() {
     globalStream.viewerCount = 0;
     globalStream.reconnectAttempts = 0;
     globalStream.historySaved = false;
+    if (globalStream.numberGame && globalStream.numberGame.timerId) {
+        clearInterval(globalStream.numberGame.timerId);
+    }
+    globalStream.numberGame = {
+        isActive: false, secretNumber: null, minNumber: 1, maxNumber: 500, duration: 60,
+        questionnMode: false, autoNextRound: false, timerId: null, remainingTime: 0,
+        closestGuess: null, clues: [], availableClues: [], winner: null, roundEnded: false
+    };
 }
+
+// --- NUMBER GAME ENGINE ---
+function startNumberGameRound(settings) {
+    const game = globalStream.numberGame;
+    if (game.isActive && !game.roundEnded && game.timerId) return; // already running
+    
+    game.minNumber = parseInt(settings.minNumber) || 1;
+    game.maxNumber = parseInt(settings.maxNumber) || 500;
+    game.duration = parseInt(settings.duration) || 60;
+    game.questionnMode = !!settings.questionnMode;
+    game.autoNextRound = !!settings.autoNextRound;
+    
+    game.secretNumber = Math.floor(Math.random() * (game.maxNumber - game.minNumber + 1)) + game.minNumber;
+    
+    game.isActive = true;
+    game.roundEnded = false;
+    game.remainingTime = game.duration;
+    game.closestGuess = null;
+    game.winner = null;
+    game.clues = [];
+    
+    const clueList = [];
+    if (game.secretNumber % 2 === 0) clueList.push("ژمارەکە ژمارەیەکی جوتە");
+    else clueList.push("ژمارەکە ژمارەیەکی تاکە");
+    
+    if (game.secretNumber % 5 === 0) clueList.push("ژمارەکە بەسەر ٥ دابەش دەبێت");
+    else clueList.push("ژمارەکە بەسەر ٥ دابەش نابێت");
+    
+    let rangeStep = Math.max(50, Math.floor((game.maxNumber - game.minNumber) / 4));
+    let lowerBound = game.secretNumber - (game.secretNumber % rangeStep);
+    let upperBound = lowerBound + rangeStep;
+    clueList.push(`ژمارەکە لە نێوان ${lowerBound} بۆ ${upperBound} ـە`);
+    
+    game.availableClues = clueList.sort(() => Math.random() - 0.5);
+
+    if (game.timerId) clearInterval(game.timerId);
+    
+    io.emit("numberGameStarted", {
+        minNumber: game.minNumber,
+        maxNumber: game.maxNumber,
+        duration: game.duration,
+        questionnMode: game.questionnMode
+    });
+
+    game.timerId = setInterval(() => {
+        game.remainingTime -= 1;
+        
+        if (game.remainingTime === Math.floor(game.duration * 0.66) && game.availableClues.length > 0) {
+            let clue = game.availableClues.pop();
+            game.clues.push(clue);
+            io.emit("numberGameClue", clue);
+        }
+        if (game.remainingTime === Math.floor(game.duration * 0.33) && game.availableClues.length > 0) {
+            let clue = game.availableClues.pop();
+            game.clues.push(clue);
+            io.emit("numberGameClue", clue);
+        }
+        if (game.remainingTime === 10 && game.availableClues.length > 0) {
+            let clue = game.availableClues.pop();
+            let finalClue = `🚨 ئاماژەی کۆتایی: ${clue}`;
+            game.clues.push(finalClue);
+            io.emit("numberGameClue", finalClue);
+        }
+
+        io.emit("numberGameTick", { remainingTime: game.remainingTime });
+
+        if (game.remainingTime <= 0) {
+            endNumberGameRound(game.closestGuess);
+        }
+    }, 1000);
+}
+
+function processNumberGameGuess(user, guessNum) {
+    const game = globalStream.numberGame;
+    const distance = Math.abs(guessNum - game.secretNumber);
+    
+    let feedback = "";
+    if (distance === 0) feedback = "🎯 ڕاستە!";
+    else if (distance <= 5) feedback = "🔥🔥 زۆر زۆر نزیکە";
+    else if (distance <= 20) feedback = "🔥 نزیکە";
+    else if (distance <= 100) feedback = "😐 مامناوەندە";
+    else if (distance <= 200) feedback = "🥶 دوورە";
+    else feedback = "❄️ زۆر دوورە";
+    
+    const guessData = {
+        uniqueId: user.uniqueId,
+        nickname: user.nickname,
+        guess: guessNum,
+        distance: distance,
+        feedback: feedback,
+        timestamp: Date.now()
+    };
+    
+    io.emit("numberGameGuess", guessData);
+
+    if (!game.closestGuess || distance < game.closestGuess.distance) {
+        game.closestGuess = guessData;
+        io.emit("numberGameClosest", game.closestGuess);
+    }
+
+    if (distance === 0 && !game.questionnMode) {
+        endNumberGameRound(guessData);
+    }
+}
+
+function endNumberGameRound(winnerData) {
+    const game = globalStream.numberGame;
+    if (game.timerId) clearInterval(game.timerId);
+    game.roundEnded = true;
+    game.winner = winnerData;
+    
+    io.emit("numberGameEnded", {
+        secretNumber: game.secretNumber,
+        winner: game.winner,
+        closestGuess: game.closestGuess
+    });
+    
+    if (game.autoNextRound) {
+        setTimeout(() => {
+            if (globalStream.numberGame.isActive && globalStream.numberGame.roundEnded) {
+                startNumberGameRound(globalStream.numberGame);
+            }
+        }, 15000);
+    }
+}
+
 
 // --- SOCKET.IO LIVE TRACKING LOGIC ---
 io.on("connection", (socket) => {
@@ -445,7 +611,42 @@ io.on("connection", (socket) => {
                 } catch(e) {}
             }
         }
+        
+        // Push current number game state
+        const game = globalStream.numberGame;
+        if (game.isActive) {
+            syncData.numberGame = {
+                isActive: game.isActive,
+                roundEnded: game.roundEnded,
+                minNumber: game.minNumber,
+                maxNumber: game.maxNumber,
+                remainingTime: game.remainingTime,
+                closestGuess: game.closestGuess,
+                clues: game.clues,
+                questionnMode: game.questionnMode,
+                secretNumber: game.roundEnded ? game.secretNumber : null,
+                winner: game.winner
+            };
+        }
+
         socket.emit("initialState", syncData);
+    });
+
+    socket.on("startNumberGame", (settings) => {
+        startNumberGameRound(settings);
+    });
+
+    socket.on("stopNumberGame", () => {
+        const game = globalStream.numberGame;
+        if (game.timerId) clearInterval(game.timerId);
+        game.isActive = false;
+        game.roundEnded = true;
+        io.emit("numberGameEnded", {
+            secretNumber: game.secretNumber,
+            winner: null,
+            closestGuess: null,
+            stopped: true
+        });
     });
 
     socket.on("saveUserSettings", async (data) => {
