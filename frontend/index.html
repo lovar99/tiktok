@@ -253,12 +253,28 @@
         .fullscreen-widget .mz-bottom-controls {
             display: none !important;
         }
-        .fullscreen-widget .mz-exit-fs, .fullscreen-widget #mzFsSettingsBtn, .fullscreen-widget #mzToggleStretchBtn {
+        .fullscreen-widget .mz-bottom-controls.force-show {
+            display: flex !important;
+            position: absolute !important;
+            bottom: 70px !important;
+            left: 20px !important;
+            right: 20px !important;
+            width: calc(100% - 40px) !important;
+            background: rgba(0,0,0,0.85) !important;
+            padding: 15px !important;
+            border-radius: 12px !important;
+            z-index: 105 !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+            flex-direction: column !important;
+            gap: 10px !important;
+            height: auto !important;
+        }
+        .fullscreen-widget .mz-exit-fs, .fullscreen-widget #mzFsSettingsBtn, .fullscreen-widget #mzToggleStretchBtn, .fullscreen-widget #mzToggleControlsBtn {
             display: block !important;
             opacity: 0.35;
             transition: opacity 0.2s ease;
         }
-        .fullscreen-widget #mzFsSettingsBtn:hover, .fullscreen-widget #mzToggleStretchBtn:hover {
+        .fullscreen-widget #mzFsSettingsBtn:hover, .fullscreen-widget #mzToggleStretchBtn:hover, .fullscreen-widget #mzToggleControlsBtn:hover {
             opacity: 1;
         }
         .mz-exit-fs {
@@ -572,16 +588,16 @@
                 <span class="widget-close" onclick="toggleWidget('widget-maze-game')">✖</span>
             </div>
         </div>
-        <div class="widget-content" style="padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative;">
+        <div class="widget-content" style="padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; flex: 1; min-height: 0; width: 100%;">
             
             <!-- Settings Panel -->
             <div id="mazeGameSettings" style="display: none; flex-direction: column; width: 100%; gap: 10px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 10px; box-sizing: border-box; z-index: 20; position: absolute; top: 0; left: 0;">
                 <div style="display: flex; gap: 10px;">
                     <select id="mzLevel" class="search-bar" style="margin-bottom: 0; padding: 8px; flex: 1;">
-                        <option value="11">🟢 ئاستی ئاسان — 10 × 10</option>
-                        <option value="15">🟡 ئاستی ئاسایی — 15 × 15</option>
-                        <option value="25">🔴 ئاستی سەخت — 25 × 25</option>
-                        <option value="35">💀 ئاستی زۆر سەخت — 35 × 35</option>
+                        <option value="11">🟢 بچووک (10 x 10)</option>
+                        <option value="15">🟢 ناوەند (15 x 15)</option>
+                        <option value="25">🟡 گەورە (25 x 25)</option>
+                        <option value="35">🔴 زەبەلاح (35 x 35)</option>
                     </select>
                     <select id="mzTime" class="search-bar" style="margin-bottom: 0; padding: 8px; flex: 1;">
                         <option value="15">15 چرکە</option>
@@ -598,10 +614,10 @@
                     </select>
                 </div>
                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: bold; color: white;">
-                    <input type="checkbox" id="mzTraps" style="width: 18px; height: 18px; accent-color: #4169E1;"> ☑️ چالاککردنی تەڵەکان
+                    <input type="checkbox" id="mzTraps" style="width: 18px; height: 18px; accent-color: #4169E1;"> 💥 تەڵەکان چالاک بکە
                 </label>
                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: bold; color: white;">
-                    <input type="checkbox" id="mzLimited" style="width: 18px; height: 18px; accent-color: #4169E1;"> ☑️ پیشاندانی ناوچەی سنووردار (5x5)
+                    <input type="checkbox" id="mzLimited" style="width: 18px; height: 18px; accent-color: #4169E1;"> 🔦 بینینی سنووردار (5x5)
                 </label>
 
                 <div style="border-top: 1px solid #444; margin: 5px 0;"></div>
@@ -668,6 +684,7 @@
                     </div>
                 </div>
                 <button id="mzToggleStretchBtn" style="display: none; position: absolute; bottom: 20px; left: 20px; z-index: 102; background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="document.getElementById('mzStretchControls').style.display = document.getElementById('mzStretchControls').style.display === 'none' ? 'flex' : 'none'">📐 ڕێکخستنی قەبارە</button>
+                <button id="mzToggleControlsBtn" style="display: none; position: absolute; bottom: 20px; left: 160px; z-index: 102; background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="document.querySelector('.mz-bottom-controls').classList.toggle('force-show')">🎮 کۆنترۆڵەکان</button>
 
                 <button class="mz-exit-fs" onclick="exitMazeFullscreen()">✖ دەرچوون لە شاشەی تەواو</button>
 
