@@ -2101,8 +2101,8 @@
             const m = currentMazeGameData;
             
             container.innerHTML = '';
-            container.style.gridTemplateColumns = `repeat(${m.limitedView ? 5 : m.width}, 20px)`;
-            container.style.gridTemplateRows = `repeat(${m.limitedView ? 5 : m.height}, 20px)`;
+            container.style.gridTemplateColumns = `repeat(${m.limitedView ? 5 : m.width}, 1fr)`;
+            container.style.gridTemplateRows = `repeat(${m.limitedView ? 5 : m.height}, 1fr)`;
 
             let startY = 0, endY = m.height - 1;
             let startX = 0, endX = m.width - 1;
@@ -2113,18 +2113,15 @@
                 startX = Math.max(0, m.playerPos.x - 2);
                 endX = Math.min(m.width - 1, m.playerPos.x + 2);
 
-                const padTop = Math.max(0, 2 - m.playerPos.y);
-                const padLeft = Math.max(0, 2 - m.playerPos.x);
-                container.style.paddingTop = `${padTop * 21 + 5}px`;
-                container.style.paddingLeft = `${padLeft * 21 + 5}px`;
-                container.style.width = `110px`; 
-                container.style.height = `110px`;
-                container.style.justifyContent = 'start';
-                container.style.alignContent = 'start';
+                container.style.padding = '5px';
+                container.style.width = `100%`; 
+                container.style.height = `100%`;
+                container.style.justifyContent = 'center';
+                container.style.alignContent = 'center';
             } else {
                 container.style.padding = '5px';
-                container.style.width = 'fit-content';
-                container.style.height = 'fit-content';
+                container.style.width = '100%';
+                container.style.height = '100%';
                 container.style.justifyContent = 'center';
                 container.style.alignContent = 'center';
             }
