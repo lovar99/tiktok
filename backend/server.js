@@ -198,9 +198,9 @@ function getUser(data) {
     const uid = data.uniqueId;
     if (!globalStream.stats[uid]) {
         globalStream.stats[uid] = { 
-            uid: uid, 
-            name: data.nickname || "Unknown", 
-            avatar: data.profilePictureUrl || "https://www.tiktok.com/favicon.ico", 
+            uniqueId: uid, 
+            nickname: data.nickname || "Unknown", 
+            profilePictureUrl: data.profilePictureUrl || "https://www.tiktok.com/favicon.ico", 
             commentCount: 0, 
             likeCount: 0, 
             actualTotalLikes: 0, 
