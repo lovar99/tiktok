@@ -841,6 +841,7 @@
             URL.revokeObjectURL(url);
         }
 
+        let initialWidgetsLoaded = false;
         let searchHistory = JSON.parse(localStorage.getItem('tiktokSearchHistory') || '[]');
 
         function getUsernameFromToken() {
@@ -1278,7 +1279,11 @@
                 if(widgetState[widget.id]) {
                     // Prevent inline display flex from breaking standard tabs!
                     if(isLiveMode) {
-                        widget.style.display = widgetState[widget.id].display === 'none' ? 'none' : 'flex';
+                        if (!initialWidgetsLoaded && widget.id !== 'widget-controls') {
+                            widget.style.display = 'none';
+                        } else {
+                            widget.style.display = widgetState[widget.id].display === 'none' ? 'none' : 'flex';
+                        }
                     } else {
                         widget.style.display = ''; 
                     }
@@ -1493,6 +1498,9 @@
         
         window.addEventListener('DOMContentLoaded', () => {
             initDraggableWidgets();
+            setTimeout(() => {
+                initialWidgetsLoaded = true;
+            }, 2000);
             
             // Close Side Menu when clicking outside
             document.addEventListener('click', function(e) {

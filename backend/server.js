@@ -519,6 +519,9 @@ function resetGlobalStream(adminUsername) {
 
 // --- NUMBER GAME ENGINE ---
 function startNumberGameRound(adminUsername, settings) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     const game = globalStream.numberGame;
     if (game.isActive && !game.roundEnded && game.timerId) return; // already running
     
@@ -583,7 +586,7 @@ function startNumberGameRound(adminUsername, settings) {
         io.to(adminUsername).emit("numberGameTick", { remainingTime: game.remainingTime });
 
         if (game.remainingTime <= 0) {
-            endNumberGameRound(game.closestGuess);
+            endNumberGameRound(adminUsername, game.closestGuess);
         }
     }, 1000);
 }
@@ -604,18 +607,29 @@ function processNumberGameGuess(adminUsername, user, guessNum) {
     }
 
     const distance = Math.abs(guessNum - game.secretNumber);
-    
     let feedback = "";
-    if (distance === 0) feedback = "🎯 ڕاستە!";
-    else if (distance <= 5) feedback = "🔥🔥 زۆر زۆر نزیکە";
-    else if (distance <= 20) feedback = "🔥 نزیکە";
-    else if (distance <= 100) feedback = "😐 مامناوەندە";
-    else if (distance <= 200) feedback = "🥶 دوورە";
-    else feedback = "❄️ زۆر دوورە";
     
+    // Arabic/Eastern numeral guesses logic translation Kurdish
+    if (distance === 0) {
+        feedback = "🎯 ڕاستە!";
+    } else if (distance <= 5) {
+        feedback = "🔥 زۆر زۆر نزیکە";
+    } else if (distance <= 15) {
+        feedback = "☀️ نزیکە";
+    } else if (distance <= 30) {
+        feedback = "⛅ کەمێک دوورە";
+    } else if (distance <= 60) {
+        feedback = "❄️ دوورە";
+    } else {
+        feedback = "🏔️ زۆر دوورە";
+    }
+
     const guessData = {
-        uniqueId: user.uniqueId,
-        nickname: user.nickname,
+        user: {
+            nickname: user.nickname,
+            profilePictureUrl: user.profilePictureUrl,
+            uniqueId: user.uniqueId
+        },
         guess: guessNum,
         distance: distance,
         feedback: feedback,
@@ -630,11 +644,14 @@ function processNumberGameGuess(adminUsername, user, guessNum) {
     }
 
     if (distance === 0 && !game.questionnMode) {
-        endNumberGameRound(guessData);
+        endNumberGameRound(adminUsername, guessData);
     }
 }
 
-function endNumberGameRound(winnerData) {
+function endNumberGameRound(adminUsername, winnerData) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     const game = globalStream.numberGame;
     if (game.timerId) clearInterval(game.timerId);
     game.roundEnded = true;
@@ -649,7 +666,7 @@ function endNumberGameRound(winnerData) {
     if (game.autoNextRound) {
         setTimeout(() => {
             if (globalStream.numberGame.isActive && globalStream.numberGame.roundEnded) {
-                startNumberGameRound(globalStream.numberGame);
+                startNumberGameRound(adminUsername, globalStream.numberGame);
             }
         }, 15000);
     }
@@ -740,6 +757,9 @@ function startMazeRegistration(adminUsername) {
 }
 
 function startMazeGame(adminUsername, settings) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     const mGame = globalStream.mazeGame;
     if (!mGame.selectedPlayer) return;
 
@@ -765,7 +785,7 @@ function startMazeGame(adminUsername, settings) {
         mGame.remainingTime -= 1;
         io.to(adminUsername).emit("mazeGameTick", { remainingTime: mGame.remainingTime });
         if (mGame.remainingTime <= 0) {
-            endMazeGame('time');
+            endMazeGame(adminUsername, 'time');
         }
     }, 1000);
 
@@ -811,13 +831,13 @@ function processMazeCommand(adminUsername, user, text) {
                     mGame.remainingTime = Math.max(0, mGame.remainingTime - 3);
                     mGame.lives -= 1;
                     if (mGame.lives <= 0) {
-                        endMazeGame('lives');
+                        endMazeGame(adminUsername, 'lives');
                         break;
                     }
                 }
 
                 if (nx === mGame.exitPos.x && ny === mGame.exitPos.y) {
-                    endMazeGame('win');
+                    endMazeGame(adminUsername, 'win');
                     break;
                 }
             }
@@ -836,7 +856,10 @@ function processMazeCommand(adminUsername, user, text) {
     }
 }
 
-function endMazeGame(reason) {
+function endMazeGame(adminUsername, reason) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     const mGame = globalStream.mazeGame;
     if (mGame.timerId) clearInterval(mGame.timerId);
     mGame.phase = 'ended';
