@@ -411,6 +411,108 @@
             /* Keep HUD completely compact on PC */
             #widget-controls { width: 380px !important; }
         }
+
+        /* VIEWER RACE STYLES */
+        .viewer-race-track {
+            position: relative;
+            width: 100%;
+            flex-grow: 1;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 10px 0;
+            border-left: 2px dashed rgba(255,255,255,0.2);
+            border-right: 2px dashed #ff3b5c;
+        }
+        .race-lane {
+            position: relative;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            width: 100%;
+        }
+        .race-avatar {
+            position: absolute;
+            left: 0;
+            top: 5px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: left 0.8s linear, top 0.5s ease-out;
+            white-space: nowrap;
+            z-index: 2;
+        }
+        .race-avatar img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #ff3b5c;
+            object-fit: cover;
+            box-shadow: 0 0 10px rgba(255, 59, 92, 0.5);
+        }
+        .race-avatar .info {
+            background: rgba(0,0,0,0.7);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .race-avatar .rank-badge {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: black;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            position: absolute;
+            bottom: -5px;
+            left: -5px;
+            z-index: 3;
+            border: 1px solid #fff;
+        }
+        .race-avatar .score {
+            color: #6366f1;
+        }
+        #vrWinnerOverlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+        #vrWinnerAvatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 5px solid #FFD700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            margin-bottom: 20px;
+            animation: bounceIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -467,6 +569,7 @@
             <button class="menu-btn" onclick="toggleWidget('widget-search')">🔍 گەڕانی کۆمێنت</button>
             <button class="menu-btn" onclick="toggleWidget('widget-maze-game')">🧩 پازڵی دەرچوون</button>
             <button class="menu-btn" onclick="toggleWidget('widget-number-game')">🎯 یاری ژمارەی نهێنی</button>
+            <button class="menu-btn" onclick="toggleWidget('widget-viewer-race')" style="background: linear-gradient(135deg, #1b263b, #0d1b2a); border: 1px solid #ff3b5c;">🏁 پێشبڕکێی بینەران</button>
             <button class="menu-btn" onclick="toggleWidget('widget-all-in-one')" style="background: linear-gradient(135deg, #ff3b5c, #9c27b0); border: 1px solid white;">📱 مۆبایل - هەمووی پێکەوە</button>
             <div style="border-top: 1px solid #444; margin: 10px 0;"></div>
             <button class="menu-btn" style="background: #9c27b0;" onclick="autoArrangeWidgets()">📐 ڕێکخستنی ئۆتۆماتیکی</button>
@@ -638,6 +741,70 @@
             </div>
 
             <div id="numberGameFeed" style="width: 100%; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;"></div>
+        </div>
+        <div class="resize-handle"></div>
+    </div>
+
+    <!-- VIEWER RACE WIDGET -->
+    <div id="widget-viewer-race" class="widget-card" style="display: none; background: linear-gradient(135deg, #1b263b, #0d1b2a); min-width: 400px; width: 450px; height: 500px;">
+        <div class="widget-header" style="background: rgba(0, 0, 0, 0.4);">
+            <span>🏁 پێشبڕکێی بینەران (Viewer Race)</span>
+            <div style="display:flex; gap:2px;">
+                <span class="widget-btn" onclick="document.getElementById('vrSettingsPanel').style.display = document.getElementById('vrSettingsPanel').style.display === 'none' ? 'flex' : 'none'" title="ڕێکخستنەکان">⚙️</span>
+                <span class="widget-btn" onclick="document.getElementById('widget-viewer-race').classList.toggle('fullscreen-widget')" title="شاشەی تەواو">⛶</span>
+                <span class="widget-btn" onclick="zoomWidget('widget-viewer-race', -1)">-</span>
+                <span class="widget-btn" onclick="zoomWidget('widget-viewer-race', 1)">+</span>
+                <span class="widget-close" onclick="minimizeWidget('widget-viewer-race')">_</span>
+                <span class="widget-close" onclick="toggleWidget('widget-viewer-race')">✖</span>
+            </div>
+        </div>
+
+        <div class="widget-content" style="padding: 10px; display: flex; flex-direction: column; position: relative; flex: 1; min-height: 0; width: 100%;">
+            
+            <!-- Settings Panel -->
+            <div id="vrSettingsPanel" style="display: none; flex-direction: column; width: 100%; gap: 10px; background: rgba(13, 27, 42, 0.98); padding: 15px; border-radius: 10px; box-sizing: border-box; z-index: 1000; position: absolute; top: 0; left: 0; bottom: 0; overflow-y: auto;">
+                <div style="display: flex; gap: 10px;">
+                    <select id="vrRaceType" class="search-bar" style="margin-bottom: 0; padding: 8px; flex: 1;">
+                        <option value="comment">💬 کۆمێنت (Comments)</option>
+                        <option value="like">❤️ لایک (Likes)</option>
+                        <option value="share">🔄 شەیر (Shares)</option>
+                        <option value="gift">🎁 دیاری (Gifts)</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="vrDuration" class="search-bar" placeholder="کاتی پێشبڕکێ (چرکە) - 60" style="margin-bottom: 0; padding: 8px; flex: 1;">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="vrTarget" class="search-bar" placeholder="🎯 ئامانج (ئارەزوومەندانە)" style="margin-bottom: 0; padding: 8px; flex: 1;">
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="menu-btn" onclick="vrStartRace()" style="background: #4CAF50; flex: 1;">▶️ دەستپێکردن</button>
+                    <button class="menu-btn" onclick="vrStopRace()" style="background: #ff9800; flex: 1;">⏹️ وەستان</button>
+                    <button class="menu-btn" onclick="vrResetRace()" style="background: #f44336; flex: 1;">🔄 سفرکردنەوە</button>
+                </div>
+            </div>
+
+            <!-- Active Race UI -->
+            <div id="vrActiveHeader" style="display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 5px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="font-size: 16px; font-weight: bold; color: #ff3b5c;">⏱️ <span id="vrTimeDisplay">00:00</span></div>
+                <div id="vrTargetDisplay" style="font-size: 14px; color: #ccc;">ئامانج: دیارینەکراوە</div>
+                <div id="vrTypeDisplay" style="font-size: 16px;">💬</div>
+            </div>
+
+            <div id="vrTrackContainer" class="viewer-race-track">
+                <!-- Lanes dynamically generated here -->
+            </div>
+
+            <!-- Winner Overlay -->
+            <div id="vrWinnerOverlay">
+                <h1 style="font-size: 40px; color: #FFD700; margin: 0; text-shadow: 0 4px 10px rgba(0,0,0,0.5);">🏆 براوە! 🏆</h1>
+                <img id="vrWinnerAvatar" src="" alt="Winner">
+                <h2 id="vrWinnerName" style="color: white; margin: 10px 0;">@username</h2>
+                <div id="vrWinnerScore" style="color: #4CAF50; font-size: 24px; font-weight: bold;">سەرکەوت!</div>
+                <button class="menu-btn" onclick="document.getElementById('vrWinnerOverlay').style.display='none'" style="margin-top: 20px; background: #333; min-width: 150px;">داخستن</button>
+            </div>
+            
         </div>
         <div class="resize-handle"></div>
     </div>
@@ -978,6 +1145,30 @@
             if (data.mazeGame) {
                 currentMazeGameData = data.mazeGame;
                 updateMazeUI();
+            }
+            if (data.viewerRace && data.viewerRace.isActive) {
+                vrCurrentState = data.viewerRace;
+                document.getElementById('vrWinnerOverlay').style.display = 'none';
+                
+                const types = { comment: '💬', like: '❤️', share: '🔄', gift: '🎁' };
+                document.getElementById('vrTypeDisplay').innerText = types[data.viewerRace.raceType] || '🏁';
+                
+                if (data.viewerRace.targetAmount > 0) {
+                    document.getElementById('vrTargetDisplay').innerText = `ئامانج: ${data.viewerRace.targetAmount}`;
+                } else {
+                    document.getElementById('vrTargetDisplay').innerText = `ئامانج: دیارینەکراوە`;
+                }
+
+                if (data.viewerRace.top10) {
+                    renderViewerRace(data.viewerRace.top10);
+                }
+
+                if (data.viewerRace.roundEnded && data.viewerRace.winner) {
+                    document.getElementById('vrWinnerName').innerText = data.viewerRace.winner.nickname;
+                    document.getElementById('vrWinnerAvatar').src = data.viewerRace.winner.profilePictureUrl || 'https://p16-sign-va.tiktokcdn.com/tos-maliva-avt-0068/7c706df6714041d8e137f8976a161474~c5_100x100.jpeg?x-expires=1708848000&x-signature=unknown';
+                    document.getElementById('vrWinnerScore').innerText = `${data.viewerRace.winner.score} خاڵ!`;
+                    document.getElementById('vrWinnerOverlay').style.display = 'flex';
+                }
             }
             if (data.searchHistory) {
                 searchHistory = data.searchHistory;
@@ -2507,7 +2698,150 @@
             document.querySelector("#customModal h2").innerText = title;
             document.getElementById("customModalContent").innerHTML = contentHtml;
             modal.style.display = "flex";
+        // ==========================================
+        // VIEWER RACE WIDGET LOGIC
+        // ==========================================
+        let vrCurrentState = { isActive: false, targetAmount: null, raceType: 'comment', duration: 60 };
+
+        function vrStartRace() {
+            const type = document.getElementById('vrRaceType').value;
+            const duration = document.getElementById('vrDuration').value || 60;
+            const target = document.getElementById('vrTarget').value || null;
+            socket.emit("startViewerRace", { raceType: type, duration: duration, targetAmount: target });
+            document.getElementById('vrSettingsPanel').style.display = 'none';
         }
+
+        function vrStopRace() {
+            socket.emit("stopViewerRace");
+        }
+
+        function vrResetRace() {
+            socket.emit("resetViewerRace");
+            document.getElementById('vrTrackContainer').innerHTML = "";
+            document.getElementById('vrWinnerOverlay').style.display = "none";
+            document.getElementById('vrTimeDisplay').innerText = "00:00";
+            document.getElementById('vrTargetDisplay').innerText = "ئامانج: دیارینەکراوە";
+        }
+
+        function renderViewerRace(top10) {
+            const container = document.getElementById('vrTrackContainer');
+            
+            // Calculate max score for relative progress if no target
+            let maxScore = 1;
+            if (top10.length > 0) {
+                maxScore = top10[0].score || 1;
+            }
+
+            // Keep track of existing avatars to update smoothly instead of recreating
+            const existingLanes = Array.from(container.children);
+            const activeIds = new Set(top10.map(p => p.uniqueId));
+
+            // Remove dropped players
+            existingLanes.forEach(lane => {
+                if (!activeIds.has(lane.dataset.uid)) {
+                    lane.remove();
+                }
+            });
+
+            top10.forEach((player, index) => {
+                let lane = document.getElementById(`vr-lane-${player.uniqueId}`);
+                if (!lane) {
+                    lane = document.createElement('div');
+                    lane.className = 'race-lane';
+                    lane.id = `vr-lane-${player.uniqueId}`;
+                    lane.dataset.uid = player.uniqueId;
+                    
+                    const avatar = document.createElement('div');
+                    avatar.className = 'race-avatar';
+                    avatar.id = `vr-avatar-${player.uniqueId}`;
+                    avatar.innerHTML = `
+                        <div class="rank-badge">${index + 1}</div>
+                        <img src="${player.profilePictureUrl || 'https://p16-sign-va.tiktokcdn.com/tos-maliva-avt-0068/7c706df6714041d8e137f8976a161474~c5_100x100.jpeg?x-expires=1708848000&x-signature=unknown'}" onerror="this.src='https://p16-sign-va.tiktokcdn.com/tos-maliva-avt-0068/7c706df6714041d8e137f8976a161474~c5_100x100.jpeg?x-expires=1708848000&x-signature=unknown'">
+                        <div class="info">
+                            <span>${player.nickname}</span>
+                            <span class="score">${player.score}</span>
+                        </div>
+                    `;
+                    lane.appendChild(avatar);
+                    container.appendChild(lane);
+                } else {
+                    // Update existing
+                    const badge = lane.querySelector('.rank-badge');
+                    const score = lane.querySelector('.score');
+                    badge.innerText = index + 1;
+                    score.innerText = player.score;
+                    
+                    // Reorder visually in DOM for flex layout (fixes overlapping)
+                    if (Array.from(container.children).indexOf(lane) !== index) {
+                        container.insertBefore(lane, container.children[index]);
+                    }
+                }
+
+                // Calculate position
+                let progress = 0;
+                if (vrCurrentState.targetAmount > 0) {
+                    progress = (player.score / vrCurrentState.targetAmount) * 90; // max 90% to leave room for avatar info
+                } else {
+                    progress = (player.score / maxScore) * 85; // relative to leader
+                }
+                
+                // Cap at 90% so they don't overflow the container visually
+                if (progress > 90) progress = 90;
+                
+                const avatarEl = lane.querySelector('.race-avatar');
+                avatarEl.style.left = `${progress}%`;
+            });
+        }
+
+        socket.on("viewerRaceStarted", (state) => {
+            vrCurrentState = state;
+            vrCurrentState.isActive = true;
+            document.getElementById('vrWinnerOverlay').style.display = 'none';
+            document.getElementById('vrTrackContainer').innerHTML = "";
+            
+            const types = { comment: '💬', like: '❤️', share: '🔄', gift: '🎁' };
+            document.getElementById('vrTypeDisplay').innerText = types[state.raceType] || '🏁';
+            
+            if (state.targetAmount > 0) {
+                document.getElementById('vrTargetDisplay').innerText = `ئامانج: ${state.targetAmount}`;
+            } else {
+                document.getElementById('vrTargetDisplay').innerText = `ئامانج: دیارینەکراوە`;
+            }
+        });
+
+        socket.on("viewerRaceTick", (data) => {
+            if (data.remainingTime !== undefined) {
+                const m = Math.floor(data.remainingTime / 60).toString().padStart(2, '0');
+                const s = (data.remainingTime % 60).toString().padStart(2, '0');
+                document.getElementById('vrTimeDisplay').innerText = `${m}:${s}`;
+            }
+            if (data.top10) {
+                renderViewerRace(data.top10);
+            }
+        });
+
+        socket.on("viewerRaceEnded", (data) => {
+            if (data.top10) renderViewerRace(data.top10);
+            document.getElementById('vrTimeDisplay').innerText = "00:00";
+            vrCurrentState.isActive = false;
+            
+            if (data.winner) {
+                document.getElementById('vrWinnerName').innerText = data.winner.nickname;
+                document.getElementById('vrWinnerAvatar').src = data.winner.profilePictureUrl || 'https://p16-sign-va.tiktokcdn.com/tos-maliva-avt-0068/7c706df6714041d8e137f8976a161474~c5_100x100.jpeg?x-expires=1708848000&x-signature=unknown';
+                document.getElementById('vrWinnerScore').innerText = `${data.winner.score} خاڵ!`;
+                document.getElementById('vrWinnerOverlay').style.display = 'flex';
+            }
+        });
+
+        socket.on("viewerRaceStopped", () => {
+            vrCurrentState.isActive = false;
+            document.getElementById('vrTimeDisplay').innerText = "وەستاوە";
+        });
+
+        socket.on("viewerRaceReset", () => {
+            vrResetRace(); // visually clear it
+        });
+        
     </script>
     <!-- AutoAnimate for Smooth List Reordering -->
     <script type="module">

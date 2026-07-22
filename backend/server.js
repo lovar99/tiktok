@@ -78,6 +78,18 @@ function createEmptyStreamState() {
             limitedView: false,
             timerId: null,
             winner: false
+        },
+        viewerRace: {
+            isActive: false,
+            roundEnded: false,
+            raceType: null,
+            targetAmount: null,
+            duration: 60,
+            remainingTime: 0,
+            timerId: null,
+            participants: {},
+            winner: null,
+            top10: []
         }
     };
 }
@@ -396,6 +408,15 @@ function initializeTikTokConnection(adminUsername, username) {
             }
         }
 
+        // Viewer Race Logic (Comment)
+        const vRace = globalStream.viewerRace;
+        if (vRace && vRace.isActive && !vRace.roundEnded && vRace.raceType === 'comment') {
+            if (!vRace.participants[user.uniqueId]) {
+                vRace.participants[user.uniqueId] = { uniqueId: user.uniqueId, nickname: user.nickname, profilePictureUrl: user.profilePictureUrl, score: 0 };
+            }
+            vRace.participants[user.uniqueId].score += 1;
+        }
+
         globalStream.comments.push(commentData);
         if(globalStream.comments.length > 500) globalStream.comments.shift();
         
@@ -405,24 +426,56 @@ function initializeTikTokConnection(adminUsername, username) {
 
     globalStream.connection.on('like', data => {
         const user = getUser(adminUsername, data);
+        const newLikes = data.likeCount || 1;
         if (data.totalLikeCount !== undefined) {
             user.likeCount = data.totalLikeCount;
         } else {
-            user.likeCount += (data.likeCount || 1);
+            user.likeCount += newLikes;
         }
         user.actualTotalLikes = user.likeCount;
+        
+        // Viewer Race Logic (Like)
+        const vRace = globalStream.viewerRace;
+        if (vRace && vRace.isActive && !vRace.roundEnded && vRace.raceType === 'like') {
+            if (!vRace.participants[user.uniqueId]) {
+                vRace.participants[user.uniqueId] = { uniqueId: user.uniqueId, nickname: user.nickname, profilePictureUrl: user.profilePictureUrl, score: 0 };
+            }
+            vRace.participants[user.uniqueId].score += newLikes;
+        }
+
         emitUpdate(adminUsername);
     });
 
     globalStream.connection.on('gift', data => {
         const user = getUser(adminUsername, data);
-        user.giftCount += data.diamondCount ? (data.diamondCount * (data.repeatCount || 1)) : 1;
+        const giftVal = data.diamondCount ? (data.diamondCount * (data.repeatCount || 1)) : 1;
+        user.giftCount += giftVal;
+        
+        // Viewer Race Logic (Gift)
+        const vRace = globalStream.viewerRace;
+        if (vRace && vRace.isActive && !vRace.roundEnded && vRace.raceType === 'gift') {
+            if (!vRace.participants[user.uniqueId]) {
+                vRace.participants[user.uniqueId] = { uniqueId: user.uniqueId, nickname: user.nickname, profilePictureUrl: user.profilePictureUrl, score: 0 };
+            }
+            vRace.participants[user.uniqueId].score += giftVal;
+        }
+
         emitUpdate(adminUsername);
     });
 
     globalStream.connection.on('share', data => {
         const user = getUser(adminUsername, data);
         user.shareCount += 1;
+        
+        // Viewer Race Logic (Share)
+        const vRace = globalStream.viewerRace;
+        if (vRace && vRace.isActive && !vRace.roundEnded && vRace.raceType === 'share') {
+            if (!vRace.participants[user.uniqueId]) {
+                vRace.participants[user.uniqueId] = { uniqueId: user.uniqueId, nickname: user.nickname, profilePictureUrl: user.profilePictureUrl, score: 0 };
+            }
+            vRace.participants[user.uniqueId].score += 1;
+        }
+
         emitUpdate(adminUsername);
     });
 
@@ -514,6 +567,13 @@ function resetGlobalStream(adminUsername) {
         isActive: false, secretNumber: null, minNumber: 1, maxNumber: 500, duration: 60,
         questionnMode: false, autoNextRound: false, timerId: null, remainingTime: 0,
         closestGuess: null, clues: [], availableClues: [], winner: null, roundEnded: false
+    };
+    if (globalStream.viewerRace && globalStream.viewerRace.timerId) {
+        clearInterval(globalStream.viewerRace.timerId);
+    }
+    globalStream.viewerRace = {
+        isActive: false, roundEnded: false, raceType: null, targetAmount: null,
+        duration: 60, remainingTime: 0, timerId: null, participants: {}, winner: null, top10: []
     };
 }
 
@@ -880,6 +940,87 @@ function stopMazeGame(adminUsername) {
     io.to(adminUsername).emit("mazeGameState", getSafeMazeGameState(adminUsername));
 }
 
+// --- VIEWER RACE ENGINE ---
+function startViewerRace(adminUsername, settings) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+    const vRace = globalStream.viewerRace;
+
+    if (vRace.timerId) clearInterval(vRace.timerId);
+
+    vRace.isActive = true;
+    vRace.roundEnded = false;
+    vRace.raceType = settings.raceType || "comment";
+    vRace.targetAmount = settings.targetAmount ? parseInt(settings.targetAmount) : null;
+    vRace.duration = settings.duration ? parseInt(settings.duration) : 60;
+    vRace.remainingTime = vRace.duration;
+    vRace.participants = {};
+    vRace.top10 = [];
+    vRace.winner = null;
+
+    vRace.timerId = setInterval(() => {
+        vRace.remainingTime--;
+        
+        const partsArray = Object.values(vRace.participants);
+        partsArray.sort((a, b) => b.score - a.score);
+        vRace.top10 = partsArray.slice(0, 10);
+
+        if (vRace.remainingTime <= 0) {
+            endViewerRace(adminUsername);
+        } else {
+            io.to(adminUsername).emit("viewerRaceTick", { remainingTime: vRace.remainingTime, top10: vRace.top10 });
+        }
+    }, 1000);
+
+    io.to(adminUsername).emit("viewerRaceStarted", { 
+        duration: vRace.duration, 
+        raceType: vRace.raceType,
+        targetAmount: vRace.targetAmount 
+    });
+}
+
+function endViewerRace(adminUsername) {
+    if (!userStreams[adminUsername]) return;
+    const globalStream = userStreams[adminUsername];
+    const vRace = globalStream.viewerRace;
+
+    if (vRace.timerId) clearInterval(vRace.timerId);
+    vRace.roundEnded = true;
+    
+    const partsArray = Object.values(vRace.participants);
+    partsArray.sort((a, b) => b.score - a.score);
+    vRace.top10 = partsArray.slice(0, 10);
+    
+    if (vRace.top10.length > 0) {
+        vRace.winner = vRace.top10[0];
+    }
+
+    io.to(adminUsername).emit("viewerRaceEnded", { top10: vRace.top10, winner: vRace.winner });
+}
+
+function stopViewerRace(adminUsername) {
+    if (!userStreams[adminUsername]) return;
+    const globalStream = userStreams[adminUsername];
+    const vRace = globalStream.viewerRace;
+    if (vRace.timerId) clearInterval(vRace.timerId);
+    vRace.isActive = false;
+    io.to(adminUsername).emit("viewerRaceStopped", { stopped: true });
+}
+
+function resetViewerRace(adminUsername) {
+    if (!userStreams[adminUsername]) return;
+    const globalStream = userStreams[adminUsername];
+    const vRace = globalStream.viewerRace;
+    if (vRace.timerId) clearInterval(vRace.timerId);
+    vRace.isActive = false;
+    vRace.roundEnded = false;
+    vRace.participants = {};
+    vRace.top10 = [];
+    vRace.winner = null;
+    io.to(adminUsername).emit("viewerRaceReset", { reset: true });
+}
+
+
 
 // --- SOCKET.IO LIVE TRACKING LOGIC ---
 io.on("connection", (socket) => {
@@ -952,6 +1093,20 @@ io.on("connection", (socket) => {
             syncData.mazeGame = getSafeMazeGameState(adminUsername);
         }
 
+        const vRace = globalStream.viewerRace;
+        if (vRace.isActive) {
+            syncData.viewerRace = {
+                isActive: vRace.isActive,
+                roundEnded: vRace.roundEnded,
+                raceType: vRace.raceType,
+                targetAmount: vRace.targetAmount,
+                duration: vRace.duration,
+                remainingTime: vRace.remainingTime,
+                top10: vRace.top10,
+                winner: vRace.winner
+            };
+        }
+
         socket.emit("initialState", syncData);
     });
 
@@ -993,6 +1148,18 @@ io.on("connection", (socket) => {
         globalStream.mazeGame.registeredPlayers = [];
         globalStream.mazeGame.selectedPlayer = null;
         io.to(adminUsername).emit("mazeGameState", getSafeMazeGameState(adminUsername));
+    });
+
+    socket.on("startViewerRace", (settings) => {
+        startViewerRace(adminUsername, settings);
+    });
+
+    socket.on("stopViewerRace", () => {
+        stopViewerRace(adminUsername);
+    });
+
+    socket.on("resetViewerRace", () => {
+        resetViewerRace(adminUsername);
     });
 
     socket.on("saveUserSettings", async (data) => {
