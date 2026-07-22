@@ -255,6 +255,11 @@
         }
         .fullscreen-widget .mz-exit-fs, .fullscreen-widget #mzFsSettingsBtn, .fullscreen-widget #mzToggleStretchBtn {
             display: block !important;
+            opacity: 0.35;
+            transition: opacity 0.2s ease;
+        }
+        .fullscreen-widget #mzFsSettingsBtn:hover, .fullscreen-widget #mzToggleStretchBtn:hover {
+            opacity: 1;
         }
         .mz-exit-fs {
             display: none;
