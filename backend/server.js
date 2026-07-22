@@ -22,61 +22,65 @@ const port = process.env.PORT || 4000;
 // Active site visitors tracking (Admin panel tracking)
 let activeSiteVisitors = {};
 
-// --- GLOBAL STREAM STATE ---
-let globalStream = {
-    sessionId: null,
-    username: null,
-    connection: null,
-    isActive: false,
-    manuallyStopped: false,
-    startedAt: null,
-    stats: {},
-    comments: [],
-    leaderboard: null,
-    pollKeywords: [],
-    pollCounts: {},
-    viewerCount: 0,
-    reconnectAttempts: 0,
-    reconnectTimeoutId: null,
-    historySaved: false,
-    checkpointIntervalId: null,
-    numberGame: {
+// --- GLOBAL STREAM STATE (MULTI-TENANT) ---
+const userStreams = {};
+
+function createEmptyStreamState() {
+    return {
+        sessionId: null,
+        username: null,
+        connection: null,
         isActive: false,
-        secretNumber: null,
-        minNumber: 1,
-        maxNumber: 500,
-        duration: 60,
-        questionnMode: false,
-        autoNextRound: false,
-        timerId: null,
-        remainingTime: 0,
-        closestGuess: null,
-        clues: [],
-        availableClues: [],
-        winner: null,
-        roundEnded: false
-    },
-    mazeGame: {
-        isActive: false,
-        phase: "inactive", // 'inactive', 'registration', 'playing', 'ended'
-        registeredPlayers: [],
-        selectedPlayer: null,
-        maze: [],
-        width: 11,
-        height: 11,
-        playerPos: { x: 0, y: 0 },
-        exitPos: { x: 0, y: 0 },
-        traps: [],
-        duration: 60,
-        remainingTime: 0,
-        lives: 3,
-        initialLives: 3,
-        trapsEnabled: false,
-        limitedView: false,
-        timerId: null,
-        winner: false
-    }
-};
+        manuallyStopped: false,
+        startedAt: null,
+        stats: {},
+        comments: [],
+        leaderboard: null,
+        pollKeywords: [],
+        pollCounts: {},
+        viewerCount: 0,
+        reconnectAttempts: 0,
+        reconnectTimeoutId: null,
+        historySaved: false,
+        checkpointIntervalId: null,
+        numberGame: {
+            isActive: false,
+            secretNumber: null,
+            minNumber: 1,
+            maxNumber: 500,
+            duration: 60,
+            questionnMode: false,
+            autoNextRound: false,
+            timerId: null,
+            remainingTime: 0,
+            closestGuess: null,
+            clues: [],
+            availableClues: [],
+            winner: null,
+            roundEnded: false
+        },
+        mazeGame: {
+            isActive: false,
+            phase: "inactive",
+            registeredPlayers: [],
+            selectedPlayer: null,
+            maze: [],
+            width: 11,
+            height: 11,
+            playerPos: { x: 0, y: 0 },
+            exitPos: { x: 0, y: 0 },
+            traps: [],
+            duration: 60,
+            remainingTime: 0,
+            lives: 3,
+            initialLives: 3,
+            trapsEnabled: false,
+            limitedView: false,
+            timerId: null,
+            winner: false
+        }
+    };
+}
 
 function parseEasternNumerals(str) {
     const numerals = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
@@ -141,7 +145,10 @@ app.post("/api/auth", async (req, res) => {
 });
 
 // --- RENDER RESTART RECOVERY (D1 Checkpoint) ---
-async function recoverActiveStream() {
+async function recoverActiveStream(adminUsername) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     try {
         const res = await queryD1(`SELECT settings_data FROM user_settings WHERE username = '_SYSTEM_GLOBAL_STREAM_'`);
         const row = res.result?.[0]?.results?.[0];
@@ -183,7 +190,7 @@ async function recoverActiveStream() {
                 globalStream.historySaved = false;
 
                 startCheckpointing();
-                initializeTikTokConnection(globalStream.username);
+                initializeTikTokConnection(adminUsername, globalStream.username);
             }
         }
     } catch (e) {
@@ -191,7 +198,10 @@ async function recoverActiveStream() {
     }
 }
 
-function saveStreamCheckpoint() {
+function saveStreamCheckpoint(adminUsername) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     if (!globalStream.isActive) return;
     const checkpointData = {
         sessionId: globalStream.sessionId,
@@ -214,17 +224,26 @@ function saveStreamCheckpoint() {
     `, [JSON.stringify(checkpointData)]).catch(e => console.error("Checkpoint error", e));
 }
 
-function startCheckpointing() {
+function startCheckpointing(adminUsername) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     if (globalStream.checkpointIntervalId) clearInterval(globalStream.checkpointIntervalId);
     globalStream.checkpointIntervalId = setInterval(saveStreamCheckpoint, 30000); // Checkpoint every 30s
 }
 
-async function clearStreamCheckpoint() {
+async function clearStreamCheckpoint(adminUsername) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     await queryD1(`DELETE FROM user_settings WHERE username = '_SYSTEM_GLOBAL_STREAM_'`);
 }
 
 // Exactly-Once History Saving
-async function saveStreamToD1Once() {
+async function saveStreamToD1Once(adminUsername) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     if (globalStream.historySaved || !globalStream.username) return;
     globalStream.historySaved = true;
 
@@ -243,21 +262,27 @@ async function saveStreamToD1Once() {
         
         await queryD1(`INSERT INTO sessions (username, session_data) VALUES (?, ?)`, [globalStream.username, sessionDataStr]);
         console.log(`[Stream Ended] Auto-saved session for @${globalStream.username} to Live History exactly once.`);
-        io.emit("streamStatus", { status: "success", message: "✅ دانیشتنەکە پاشەکەوت کرا لە بنکەی دراوە! (Saved to DB)" });
+        io.to(adminUsername).emit("streamStatus", { status: "success", message: "✅ دانیشتنەکە پاشەکەوت کرا لە بنکەی دراوە! (Saved to DB)" });
     } catch (e) {
         console.error("Failed to save stream history", e);
     }
 }
 
-function emitPollUpdate() {
+function emitPollUpdate(adminUsername) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     const sorted = Object.keys(globalStream.pollCounts)
         .sort((a, b) => globalStream.pollCounts[b] - globalStream.pollCounts[a])
         .slice(0, 3)
         .map(k => ({ keyword: k, count: globalStream.pollCounts[k] }));
-    io.emit("pollUpdate", sorted);
+    io.to(adminUsername).emit("pollUpdate", sorted);
 }
 
-function getUser(data) {
+function getUser(adminUsername, data) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     const userObj = data.user || data;
     
     // Attempt to extract the unique ID from various known TikTok protobuf fields
@@ -295,17 +320,23 @@ function getUser(data) {
     return globalStream.stats[finalUid];
 }
 
-function emitUpdate() {
+function emitUpdate(adminUsername) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     const activeUsersCount = Object.keys(globalStream.stats).length;
     const sortedUsers = Object.values(globalStream.stats)
         .sort((a, b) => (b.giftCount * 1000 + b.commentCount * 10 + b.actualTotalLikes) - (a.giftCount * 1000 + a.commentCount * 10 + a.actualTotalLikes))
         .slice(0, 100);
     
     globalStream.leaderboard = { totalUniqueUsers: activeUsersCount, topUsers: sortedUsers };
-    io.emit("leaderboardUpdate", globalStream.leaderboard);
+    io.to(adminUsername).emit("leaderboardUpdate", globalStream.leaderboard);
 }
 
-function initializeTikTokConnection(username) {
+function initializeTikTokConnection(adminUsername, username) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     if (globalStream.connection) {
         try { globalStream.connection.disconnect(); } catch (e) {}
     }
@@ -315,18 +346,18 @@ function initializeTikTokConnection(username) {
     globalStream.connection.connect().then(() => {
         globalStream.reconnectAttempts = 0;
         console.log(`[TikTok] Connected to @${username}`);
-        io.emit("streamStatus", { status: "success", message: `✅ سەرکەوتوو بوو! پەیوەست بوو بە @${username}` });
+        io.to(adminUsername).emit("streamStatus", { status: "success", message: `✅ سەرکەوتوو بوو! پەیوەست بوو بە @${username}` });
     }).catch(err => {
-        handleConnectionDrop(err);
+        handleConnectionDrop(adminUsername, err);
     });
 
-    globalStream.connection.on('roomUser', data => { if (data.viewerCount !== undefined) { globalStream.viewerCount = data.viewerCount; io.emit("viewerUpdate", { count: data.viewerCount }); } });
-    globalStream.connection.on('room', data => { if (data.viewerCount !== undefined) { globalStream.viewerCount = data.viewerCount; io.emit("viewerUpdate", { count: data.viewerCount }); } });
+    globalStream.connection.on('roomUser', data => { if (data.viewerCount !== undefined) { globalStream.viewerCount = data.viewerCount; io.to(adminUsername).emit("viewerUpdate", { count: data.viewerCount }); } });
+    globalStream.connection.on('room', data => { if (data.viewerCount !== undefined) { globalStream.viewerCount = data.viewerCount; io.to(adminUsername).emit("viewerUpdate", { count: data.viewerCount }); } });
     
-    globalStream.connection.on('member', data => { getUser(data); emitUpdate(); });
+    globalStream.connection.on('member', data => { getUser(adminUsername, data); emitUpdate(adminUsername); });
     
     globalStream.connection.on('chat', data => {
-        const user = getUser(data);
+        const user = getUser(adminUsername, data);
         user.commentCount += 1;
         let chatText = data.content || data.comment || data.text || data.msg || "";
         if (!chatText || String(chatText).trim() === "") chatText = "💬 [Sent a Sticker or Emote]";
@@ -339,7 +370,7 @@ function initializeTikTokConnection(username) {
                 matchedVote = true;
             }
         });
-        if (matchedVote) emitPollUpdate();
+        if (matchedVote) emitPollUpdate(adminUsername);
 
         const commentData = { uniqueId: user.uniqueId, nickname: user.nickname, profilePictureUrl: user.profilePictureUrl, comment: String(chatText) };
         
@@ -348,7 +379,7 @@ function initializeTikTokConnection(username) {
         if (game.isActive && !game.roundEnded) {
             let guessNum = parseEasternNumerals(chatText);
             if (guessNum !== null && guessNum >= game.minNumber && guessNum <= game.maxNumber) {
-                processNumberGameGuess(user, guessNum);
+                processNumberGameGuess(adminUsername, user, guessNum);
             }
         }
 
@@ -358,79 +389,82 @@ function initializeTikTokConnection(username) {
             if (mGame.phase === 'registration' && String(chatText).trim() === '100') {
                 if (!mGame.registeredPlayers.find(p => p.uniqueId === user.uniqueId)) {
                     mGame.registeredPlayers.push({ uniqueId: user.uniqueId, nickname: user.nickname });
-                    io.emit("mazeGameRegistered", mGame.registeredPlayers);
+                    io.to(adminUsername).emit("mazeGameRegistered", mGame.registeredPlayers);
                 }
             } else if (mGame.phase === 'playing' && mGame.selectedPlayer && user.uniqueId === mGame.selectedPlayer.uniqueId) {
-                processMazeCommand(user, String(chatText));
+                processMazeCommand(adminUsername, user, String(chatText));
             }
         }
 
         globalStream.comments.push(commentData);
         if(globalStream.comments.length > 500) globalStream.comments.shift();
         
-        io.emit("newComment", commentData);
-        emitUpdate();
+        io.to(adminUsername).emit("newComment", commentData);
+        emitUpdate(adminUsername);
     });
 
     globalStream.connection.on('like', data => {
-        const user = getUser(data);
+        const user = getUser(adminUsername, data);
         if (data.totalLikeCount !== undefined) {
             user.likeCount = data.totalLikeCount;
         } else {
             user.likeCount += (data.likeCount || 1);
         }
         user.actualTotalLikes = user.likeCount;
-        emitUpdate();
+        emitUpdate(adminUsername);
     });
 
     globalStream.connection.on('gift', data => {
-        const user = getUser(data);
+        const user = getUser(adminUsername, data);
         user.giftCount += data.diamondCount ? (data.diamondCount * (data.repeatCount || 1)) : 1;
-        emitUpdate();
+        emitUpdate(adminUsername);
     });
 
     globalStream.connection.on('share', data => {
-        const user = getUser(data);
+        const user = getUser(adminUsername, data);
         user.shareCount += 1;
-        emitUpdate();
+        emitUpdate(adminUsername);
     });
 
     // ACTUAL STREAM END
     globalStream.connection.on('streamEnd', async () => {
         console.log(`[TikTok] Stream ENDED for @${globalStream.username}`);
-        io.emit("streamStatus", { status: "error", message: `🛑 ستریمەکە کۆتایی هات!` });
+        io.to(adminUsername).emit("streamStatus", { status: "error", message: `🛑 ستریمەکە کۆتایی هات!` });
         
         clearTimeout(globalStream.reconnectTimeoutId);
         clearInterval(globalStream.checkpointIntervalId);
         
-        await saveStreamToD1Once();
-        await clearStreamCheckpoint();
+        await saveStreamToD1Once(adminUsername);
+        await clearStreamCheckpoint(adminUsername);
         
-        resetGlobalStream();
+        resetGlobalStream(adminUsername);
     });
 
     // TEMPORARY DISCONNECT
     globalStream.connection.on('disconnected', () => {
         console.log(`[TikTok] Disconnected from @${globalStream.username}. Attempting reconnect...`);
-        handleConnectionDrop("Disconnected event");
+        handleConnectionDrop(adminUsername, "Disconnected event");
     });
 
     globalStream.connection.on('error', err => {
         console.error(`[TikTok] Error for @${globalStream.username}:`, err);
-        handleConnectionDrop(err);
+        handleConnectionDrop(adminUsername, err);
     });
 }
 
-function handleConnectionDrop(err) {
+function handleConnectionDrop(adminUsername, err) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     if (globalStream.manuallyStopped || !globalStream.isActive) return;
 
     if (globalStream.reconnectAttempts >= 10) {
         console.log(`[TikTok] Max reconnect attempts reached for @${globalStream.username}. Failing stream.`);
-        io.emit("streamStatus", { status: "error", message: `❌ هەڵەیەک ڕوویدا لە پەیوەندیکردن! ستریمەکە وەستا.` });
+        io.to(adminUsername).emit("streamStatus", { status: "error", message: `❌ هەڵەیەک ڕوویدا لە پەیوەندیکردن! ستریمەکە وەستا.` });
         
         // Treat as ended to ensure data isn't lost
         clearInterval(globalStream.checkpointIntervalId);
-        saveStreamToD1Once().then(() => clearStreamCheckpoint()).then(() => resetGlobalStream());
+        saveStreamToD1Once(adminUsername).then(() => clearStreamCheckpoint(adminUsername)).then(() => resetGlobalStream(adminUsername));
         return;
     }
 
@@ -438,18 +472,21 @@ function handleConnectionDrop(err) {
     const delayMs = Math.min(1000 * Math.pow(2, globalStream.reconnectAttempts), 30000); // 2s, 4s, 8s, 16s, 30s max
     
     console.log(`[TikTok] Scheduling reconnect attempt ${globalStream.reconnectAttempts} in ${delayMs}ms...`);
-    io.emit("streamStatus", { status: "error", message: `⚠️ پەیوەندی پچڕا. هەوڵی دووبارە پەیوەندیکردن دەدات (${globalStream.reconnectAttempts}/10)...` });
+    io.to(adminUsername).emit("streamStatus", { status: "error", message: `⚠️ پەیوەندی پچڕا. هەوڵی دووبارە پەیوەندیکردن دەدات (${globalStream.reconnectAttempts}/10)...` });
     
     clearTimeout(globalStream.reconnectTimeoutId);
     globalStream.reconnectTimeoutId = setTimeout(() => {
         if (!globalStream.manuallyStopped && globalStream.isActive) {
             console.log(`[TikTok] Executing reconnect attempt ${globalStream.reconnectAttempts}...`);
-            initializeTikTokConnection(globalStream.username);
+            initializeTikTokConnection(adminUsername, globalStream.username);
         }
     }, delayMs);
 }
 
-function resetGlobalStream() {
+function resetGlobalStream(adminUsername) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     if (globalStream.connection) {
         try { globalStream.connection.disconnect(); } catch (e) {}
     }
@@ -481,7 +518,7 @@ function resetGlobalStream() {
 }
 
 // --- NUMBER GAME ENGINE ---
-function startNumberGameRound(settings) {
+function startNumberGameRound(adminUsername, settings) {
     const game = globalStream.numberGame;
     if (game.isActive && !game.roundEnded && game.timerId) return; // already running
     
@@ -516,7 +553,7 @@ function startNumberGameRound(settings) {
 
     if (game.timerId) clearInterval(game.timerId);
     
-    io.emit("numberGameStarted", {
+    io.to(adminUsername).emit("numberGameStarted", {
         minNumber: game.minNumber,
         maxNumber: game.maxNumber,
         duration: game.duration,
@@ -529,21 +566,21 @@ function startNumberGameRound(settings) {
         if (game.remainingTime === Math.floor(game.duration * 0.66) && game.availableClues.length > 0) {
             let clue = game.availableClues.pop();
             game.clues.push(clue);
-            io.emit("numberGameClue", clue);
+            io.to(adminUsername).emit("numberGameClue", clue);
         }
         if (game.remainingTime === Math.floor(game.duration * 0.33) && game.availableClues.length > 0) {
             let clue = game.availableClues.pop();
             game.clues.push(clue);
-            io.emit("numberGameClue", clue);
+            io.to(adminUsername).emit("numberGameClue", clue);
         }
         if (game.remainingTime === 10 && game.availableClues.length > 0) {
             let clue = game.availableClues.pop();
             let finalClue = `🚨 ئاماژەی کۆتایی: ${clue}`;
             game.clues.push(finalClue);
-            io.emit("numberGameClue", finalClue);
+            io.to(adminUsername).emit("numberGameClue", finalClue);
         }
 
-        io.emit("numberGameTick", { remainingTime: game.remainingTime });
+        io.to(adminUsername).emit("numberGameTick", { remainingTime: game.remainingTime });
 
         if (game.remainingTime <= 0) {
             endNumberGameRound(game.closestGuess);
@@ -551,7 +588,10 @@ function startNumberGameRound(settings) {
     }, 1000);
 }
 
-function processNumberGameGuess(user, guessNum) {
+function processNumberGameGuess(adminUsername, user, guessNum) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     const game = globalStream.numberGame;
 
     if (game.questionnMode && guessNum === game.secretNumber) {
@@ -582,11 +622,11 @@ function processNumberGameGuess(user, guessNum) {
         timestamp: Date.now()
     };
     
-    io.emit("numberGameGuess", guessData);
+    io.to(adminUsername).emit("numberGameGuess", guessData);
 
     if (!game.closestGuess || distance < game.closestGuess.distance) {
         game.closestGuess = guessData;
-        io.emit("numberGameClosest", game.closestGuess);
+        io.to(adminUsername).emit("numberGameClosest", game.closestGuess);
     }
 
     if (distance === 0 && !game.questionnMode) {
@@ -600,7 +640,7 @@ function endNumberGameRound(winnerData) {
     game.roundEnded = true;
     game.winner = winnerData;
     
-    io.emit("numberGameEnded", {
+    io.to(adminUsername).emit("numberGameEnded", {
         secretNumber: game.secretNumber,
         winner: game.winner,
         closestGuess: game.closestGuess
@@ -662,7 +702,10 @@ function generateMaze(width, height, trapsEnabled) {
     return { maze, width, height, playerPos: {x: 1, y: 1}, exitPos: {x: width-2, y: height-2}, traps };
 }
 
-function getSafeMazeGameState() {
+function getSafeMazeGameState(adminUsername) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     const mGame = globalStream.mazeGame;
     return {
         isActive: mGame.isActive,
@@ -684,16 +727,19 @@ function getSafeMazeGameState() {
     };
 }
 
-function startMazeRegistration() {
+function startMazeRegistration(adminUsername) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     const mGame = globalStream.mazeGame;
     mGame.isActive = true;
     mGame.phase = 'registration';
     mGame.registeredPlayers = [];
     mGame.selectedPlayer = null;
-    io.emit("mazeGameState", getSafeMazeGameState());
+    io.to(adminUsername).emit("mazeGameState", getSafeMazeGameState(adminUsername));
 }
 
-function startMazeGame(settings) {
+function startMazeGame(adminUsername, settings) {
     const mGame = globalStream.mazeGame;
     if (!mGame.selectedPlayer) return;
 
@@ -717,16 +763,19 @@ function startMazeGame(settings) {
     if (mGame.timerId) clearInterval(mGame.timerId);
     mGame.timerId = setInterval(() => {
         mGame.remainingTime -= 1;
-        io.emit("mazeGameTick", { remainingTime: mGame.remainingTime });
+        io.to(adminUsername).emit("mazeGameTick", { remainingTime: mGame.remainingTime });
         if (mGame.remainingTime <= 0) {
             endMazeGame('time');
         }
     }, 1000);
 
-    io.emit("mazeGameState", getSafeMazeGameState());
+    io.to(adminUsername).emit("mazeGameState", getSafeMazeGameState(adminUsername));
 }
 
-function processMazeCommand(user, text) {
+function processMazeCommand(adminUsername, user, text) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     const mGame = globalStream.mazeGame;
     if (mGame.phase !== 'playing') return;
 
@@ -776,7 +825,7 @@ function processMazeCommand(user, text) {
     }
 
     if (moved || feedbackMsgs.length > 0) {
-        io.emit("mazeGameMove", {
+        io.to(adminUsername).emit("mazeGameMove", {
             playerPos: mGame.playerPos,
             remainingTime: mGame.remainingTime,
             lives: mGame.lives,
@@ -794,20 +843,30 @@ function endMazeGame(reason) {
     if (reason === 'win') mGame.winner = true;
     else mGame.winner = false;
     
-    io.emit("mazeGameEnded", { reason: reason, winner: mGame.winner });
+    io.to(adminUsername).emit("mazeGameEnded", { reason: reason, winner: mGame.winner });
 }
 
-function stopMazeGame() {
+function stopMazeGame(adminUsername) {
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     const mGame = globalStream.mazeGame;
     if (mGame.timerId) clearInterval(mGame.timerId);
     mGame.isActive = false;
     mGame.phase = 'inactive';
-    io.emit("mazeGameState", getSafeMazeGameState());
+    io.to(adminUsername).emit("mazeGameState", getSafeMazeGameState(adminUsername));
 }
 
 
 // --- SOCKET.IO LIVE TRACKING LOGIC ---
 io.on("connection", (socket) => {
+    const adminUsername = socket.handshake.auth.username;
+    if (!adminUsername || adminUsername === "unknown") return socket.disconnect();
+    
+    socket.join(adminUsername);
+    if (!userStreams[adminUsername]) userStreams[adminUsername] = createEmptyStreamState();
+    const globalStream = userStreams[adminUsername];
+
     activeSiteVisitors[socket.id] = { connectedAt: new Date().toISOString() };
 
     socket.on("setPollKeywords", (keywords) => {
@@ -815,7 +874,7 @@ io.on("connection", (socket) => {
         globalStream.pollKeywords.forEach(k => {
             if (globalStream.pollCounts[k] === undefined) globalStream.pollCounts[k] = 0;
         });
-        emitPollUpdate();
+        emitPollUpdate(adminUsername);
     });
 
     socket.on("getAllUsers", () => {
@@ -867,25 +926,25 @@ io.on("connection", (socket) => {
 
         const mGame = globalStream.mazeGame;
         if (mGame.isActive) {
-            syncData.mazeGame = getSafeMazeGameState();
+            syncData.mazeGame = getSafeMazeGameState(adminUsername);
         }
 
         socket.emit("initialState", syncData);
     });
 
     socket.on("startNumberGame", (settings) => {
-        startNumberGameRound(settings);
+        startNumberGameRound(adminUsername, settings);
     });
 
     socket.on("stopNumberGame", () => {
         const game = globalStream.numberGame;
         if (game.timerId) clearInterval(game.timerId);
         game.isActive = false;
-        io.emit("numberGameEnded", { stopped: true });
+        io.to(adminUsername).emit("numberGameEnded", { stopped: true });
     });
 
     socket.on("startMazeRegistration", () => {
-        startMazeRegistration();
+        startMazeRegistration(adminUsername);
     });
 
     socket.on("selectMazePlayer", (uniqueId) => {
@@ -894,23 +953,23 @@ io.on("connection", (socket) => {
             const player = mGame.registeredPlayers.find(p => p.uniqueId === uniqueId);
             if (player) {
                 mGame.selectedPlayer = player;
-                io.emit("mazeGameState", getSafeMazeGameState());
+                io.to(adminUsername).emit("mazeGameState", getSafeMazeGameState(adminUsername));
             }
         }
     });
 
     socket.on("startMazeGame", (settings) => {
-        startMazeGame(settings);
+        startMazeGame(adminUsername, settings);
     });
 
     socket.on("stopMazeGame", () => {
-        stopMazeGame();
+        stopMazeGame(adminUsername);
     });
 
     socket.on("clearMazePlayers", () => {
         globalStream.mazeGame.registeredPlayers = [];
         globalStream.mazeGame.selectedPlayer = null;
-        io.emit("mazeGameState", getSafeMazeGameState());
+        io.to(adminUsername).emit("mazeGameState", getSafeMazeGameState(adminUsername));
     });
 
     socket.on("saveUserSettings", async (data) => {
@@ -930,7 +989,7 @@ io.on("connection", (socket) => {
     socket.on("saveSessionToD1", async (username) => {
         // Only allow manual save if it matches the current active stream and hasn't been saved
         if (globalStream.isActive && globalStream.username === username && !globalStream.historySaved) {
-            await saveStreamToD1Once();
+            await saveStreamToD1Once(adminUsername);
         }
     });
 
@@ -988,7 +1047,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on("adminKickUser", (username) => {
-        io.emit("forceLogout", username);
+        io.to(adminUsername).emit("forceLogout", username);
     });
 
     socket.on("adminAddUser", async (data) => {
@@ -1006,11 +1065,11 @@ io.on("connection", (socket) => {
         clearTimeout(globalStream.reconnectTimeoutId);
         clearInterval(globalStream.checkpointIntervalId);
         
-        await saveStreamToD1Once();
+        await saveStreamToD1Once(adminUsername);
         await clearStreamCheckpoint();
         
         resetGlobalStream();
-        io.emit("streamStatus", { status: "error", message: `🛑 ستریمەکە وەستێنرا لەلایەن بەکارهێنەر!` });
+        io.to(adminUsername).emit("streamStatus", { status: "error", message: `🛑 ستریمەکە وەستێنرا لەلایەن بەکارهێنەر!` });
     });
 
     socket.on("startStream", (username) => {
@@ -1025,7 +1084,7 @@ io.on("connection", (socket) => {
         // If a different stream is running, stop it first safely
         if (globalStream.isActive) {
             console.log(`[Manual Change] Switching from @${globalStream.username} to @${username}. Saving old stream...`);
-            saveStreamToD1Once().then(() => clearStreamCheckpoint());
+            saveStreamToD1Once(adminUsername).then(() => clearStreamCheckpoint());
             resetGlobalStream();
         }
 
@@ -1045,7 +1104,7 @@ io.on("connection", (socket) => {
         globalStream.historySaved = false;
 
         startCheckpointing();
-        initializeTikTokConnection(username);
+        initializeTikTokConnection(adminUsername, username);
     });
 
     socket.on("disconnect", () => {

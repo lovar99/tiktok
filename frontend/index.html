@@ -746,7 +746,10 @@
             window.location.href = "login.html";
         }
         
-        const socket = io("https://tiktok-live-tracker-idnb.onrender.com", { transports: ['websocket'] });
+        const socket = io("https://tiktok-live-tracker-idnb.onrender.com", { 
+            transports: ['websocket'],
+            auth: { username: getUsernameFromToken() }
+        });
         const maxComments = 300;
 
         function saveDashboardHTML() {
