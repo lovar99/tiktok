@@ -269,13 +269,48 @@
             gap: 10px !important;
             height: auto !important;
         }
-        .fullscreen-widget .mz-exit-fs, .fullscreen-widget #mzFsSettingsBtn, .fullscreen-widget #mzToggleStretchBtn, .fullscreen-widget #mzToggleControlsBtn {
+        .fullscreen-widget #mzFsTimer {
             display: block !important;
+        }
+        .mz-fs-toolbar {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 110;
+            background: rgba(13, 27, 42, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 8px 12px;
+            border-radius: 12px;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
             opacity: 0.35;
             transition: opacity 0.2s ease;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            width: max-content;
+            max-width: 95vw;
+            flex-wrap: wrap;
         }
-        .fullscreen-widget #mzFsSettingsBtn:hover, .fullscreen-widget #mzToggleStretchBtn:hover, .fullscreen-widget #mzToggleControlsBtn:hover {
+        .mz-fs-toolbar:hover {
             opacity: 1;
+        }
+        .fullscreen-widget .mz-fs-toolbar {
+            display: flex !important;
+        }
+        .mz-fs-toolbar button {
+            padding: 6px 12px !important;
+            font-size: 13px !important;
+            border-radius: 6px !important;
+        }
+        /* Overlay UI hiding styles for Escape the Maze game */
+        .mz-hide-ui .mz-top-hud {
+            display: none !important;
+        }
+        .mz-hide-ui .mz-bottom-controls {
+            display: none !important;
         }
         .fullscreen-widget ~ .menu-toggle,
         .fullscreen-widget ~ #sideMenu .menu-toggle {
@@ -695,14 +730,7 @@
 
                 <!-- Controls & Feed -->
                 <div class="mz-bottom-controls" style="display: flex; width: 100%; gap: 10px; margin-top: 10px; flex-grow: 1; min-height: 0;">
-                    <div style="flex: 1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; font-size: 12px; color: #ccc;">
-                        <b style="color: white; display: block; margin-bottom: 5px;">🎮 کۆنترۆڵ:</b>
-                        <div>ر = ڕاست</div>
-                        <div>چ = چەپ</div>
-                        <div>س = سەرەوە</div>
-                        <div>خ = خوارەوە</div>
-                    </div>
-                    <div id="mzActionFeed" style="flex: 2; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+                    <div id="mzActionFeed" style="flex: 1; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; width: 100%;">
                     </div>
                 </div>
             </div>
@@ -715,8 +743,23 @@
                 <button class="menu-btn" onclick="document.getElementById('mzEndScreen').style.display='none'" style="background: #333;">داخستن</button>
             </div>
 
+            <!-- Floating Timer for Fullscreen/Hide UI mode -->
+            <div id="mzFsTimer" style="display: none; position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 101; font-size: 32px; font-weight: bold; color: #ff3b5c; font-family: monospace; text-shadow: 0 0 10px rgba(0,0,0,0.95); pointer-events: none;">00:60</div>
+
+            <!-- Controls Popup (Modal Dialog) -->
+            <div id="mzControlsPopup" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(13, 27, 42, 0.98); border: 2px solid #6366f1; border-radius: 15px; padding: 20px; z-index: 120; box-shadow: 0 10px 30px rgba(0,0,0,0.8); width: 85%; max-width: 300px; flex-direction: column; gap: 12px; color: white;">
+                <h3 style="margin: 0; color: #6366f1; text-align: center; font-size: 18px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">🎮 کۆنترۆڵەکانی یاری</h3>
+                <div style="font-size: 15px; display: flex; flex-direction: column; gap: 10px; margin: 10px 0; direction: rtl; text-align: right;">
+                    <div>⌨️ <b>ر</b> = ➡️ بڕۆ بۆ ڕاست</div>
+                    <div>⌨️ <b>چ</b> = ⬅️ بڕۆ بۆ چەپ</div>
+                    <div>⌨️ <b>س</b> = ⬆️ بڕۆ بۆ سەرەوە</div>
+                    <div>⌨️ <b>خ</b> = ⬇️ بڕۆ بۆ خوارەوە</div>
+                </div>
+                <button class="stop-btn" onclick="document.getElementById('mzControlsPopup').style.display='none'" style="width: 100%; padding: 8px; margin: 0; background: #333; font-weight: bold;">داخستن (Close)</button>
+            </div>
+
             <!-- Fullscreen Overlay Controls (OUTSIDE mzActiveArea so always visible in fullscreen) -->
-            <div id="mzStretchControls" style="display: none; position: absolute; bottom: 70px; left: 20px; z-index: 101; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 10px; flex-direction: column; gap: 10px;">
+            <div id="mzStretchControls" style="display: none; position: absolute; bottom: 75px; left: 50%; transform: translateX(-50%); z-index: 101; background: rgba(0,0,0,0.85); padding: 10px; border-radius: 10px; flex-direction: column; gap: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
                 <div style="display: flex; gap: 10px;">
                     <button class="menu-btn" onclick="stretchMaze(0, -5)" style="background: #333;">↕️ بچووککردنەوەی درێژی</button>
                     <button class="menu-btn" onclick="stretchMaze(0, 5)" style="background: #4CAF50;">↕️ گەورەکردنی درێژی</button>
@@ -726,9 +769,15 @@
                     <button class="menu-btn" onclick="stretchMaze(5, 0)" style="background: #2196F3;">↔️ گەورەکردنی پانی</button>
                 </div>
             </div>
-            <button id="mzToggleStretchBtn" style="display: none; position: absolute; bottom: 20px; left: 20px; z-index: 102; background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="document.getElementById('mzStretchControls').style.display = document.getElementById('mzStretchControls').style.display === 'none' ? 'flex' : 'none'">📐 ڕێکخستنی قەبارە</button>
-            <button id="mzToggleControlsBtn" style="display: none; position: absolute; bottom: 20px; left: 160px; z-index: 102; background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="document.querySelector('.mz-bottom-controls').classList.toggle('force-show')">🎮 کۆنترۆڵەکان</button>
-            <button class="mz-exit-fs" onclick="exitMazeFullscreen()">✖ دەرچوون لە شاشەی تەواو</button>
+
+            <!-- Fullscreen Control Toolbar Pill -->
+            <div id="mzFsToolbar" class="mz-fs-toolbar">
+                <button class="menu-btn" style="background: rgba(255,255,255,0.1); margin: 0;" onclick="document.getElementById('mzStretchControls').style.display = document.getElementById('mzStretchControls').style.display === 'none' ? 'flex' : 'none'">📐 قەبارە</button>
+                <button class="menu-btn" style="background: rgba(255,255,255,0.1); margin: 0;" onclick="toggleMazeControlsPopup()">🎮 کۆنترۆڵەکان</button>
+                <button id="mzToggleUIVisibilityBtn" class="menu-btn" style="background: rgba(255,255,255,0.1); margin: 0;" onclick="toggleMazeUIVisibility()">👁️ شاردنەوەی ڕووکار</button>
+                <button class="menu-btn" style="background: rgba(255,255,255,0.1); margin: 0;" onclick="document.getElementById('mazeGameSettings').style.display = document.getElementById('mazeGameSettings').style.display === 'none' ? 'flex' : 'none'">⚙️ ڕێکخستن</button>
+                <button class="mz-exit-fs" style="background: rgba(255, 59, 92, 0.95); margin: 0; padding: 8px 15px; border-radius: 6px; font-weight: bold; width: auto; height: auto; position: static; box-shadow: none;" onclick="exitMazeFullscreen()">✖ دەرچوون</button>
+            </div>
 
         </div>
         <div class="resize-handle"></div>
@@ -2162,8 +2211,34 @@
         }
 
         function exitMazeFullscreen() {
-            document.getElementById('widget-maze-game').classList.remove('fullscreen-widget');
+            const widget = document.getElementById('widget-maze-game');
+            widget.classList.remove('fullscreen-widget');
+            widget.classList.remove('mz-hide-ui');
             document.getElementById('mzStretchControls').style.display = 'none';
+            const popup = document.getElementById('mzControlsPopup');
+            if (popup) popup.style.display = 'none';
+            const btn = document.getElementById('mzToggleUIVisibilityBtn');
+            if (btn) btn.innerText = "👁️ شاردنەوەی ڕووکار";
+        }
+
+        function toggleMazeControlsPopup() {
+            const popup = document.getElementById('mzControlsPopup');
+            if (popup) {
+                popup.style.display = popup.style.display === 'none' ? 'flex' : 'none';
+            }
+        }
+
+        function toggleMazeUIVisibility() {
+            const widget = document.getElementById('widget-maze-game');
+            widget.classList.toggle('mz-hide-ui');
+            const btn = document.getElementById('mzToggleUIVisibilityBtn');
+            if (btn) {
+                if (widget.classList.contains('mz-hide-ui')) {
+                    btn.innerText = "👁️ پیشاندانی ڕووکار";
+                } else {
+                    btn.innerText = "👁️ شاردنەوەی ڕووکار";
+                }
+            }
         }
 
         function selectAndStartMaze(uniqueId) {
@@ -2230,7 +2305,10 @@
                 document.getElementById('mazeGameSettings').style.display = 'none';
                 
                 if (mGame.selectedPlayer) document.getElementById('mzActivePlayer').innerText = "@" + mGame.selectedPlayer.nickname;
-                document.getElementById('mzActiveTime').innerText = `00:${String(mGame.remainingTime).padStart(2, '0')}`;
+                const formattedTime = `00:${String(mGame.remainingTime).padStart(2, '0')}`;
+                document.getElementById('mzActiveTime').innerText = formattedTime;
+                const fsTimer = document.getElementById('mzFsTimer');
+                if (fsTimer) fsTimer.innerText = formattedTime;
                 document.getElementById('mzLivesContainer').innerHTML = '❤️'.repeat(mGame.lives) + '🖤'.repeat(mGame.initialLives - mGame.lives);
                 
                 renderMazeGrid();
@@ -2309,7 +2387,10 @@
         socket.on("mazeGameTick", (data) => {
             if(currentMazeGameData) {
                 currentMazeGameData.remainingTime = data.remainingTime;
-                document.getElementById('mzActiveTime').innerText = `00:${String(data.remainingTime).padStart(2, '0')}`;
+                const formattedTime = `00:${String(data.remainingTime).padStart(2, '0')}`;
+                document.getElementById('mzActiveTime').innerText = formattedTime;
+                const fsTimer = document.getElementById('mzFsTimer');
+                if (fsTimer) fsTimer.innerText = formattedTime;
             }
         });
 
