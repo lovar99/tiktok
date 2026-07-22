@@ -55,6 +55,26 @@ let globalStream = {
         availableClues: [],
         winner: null,
         roundEnded: false
+    },
+    mazeGame: {
+        isActive: false,
+        phase: "inactive", // 'inactive', 'registration', 'playing', 'ended'
+        registeredPlayers: [],
+        selectedPlayer: null,
+        maze: [],
+        width: 11,
+        height: 11,
+        playerPos: { x: 0, y: 0 },
+        exitPos: { x: 0, y: 0 },
+        traps: [],
+        duration: 60,
+        remainingTime: 0,
+        lives: 3,
+        initialLives: 3,
+        trapsEnabled: false,
+        limitedView: false,
+        timerId: null,
+        winner: false
     }
 };
 
@@ -330,6 +350,19 @@ function initializeTikTokConnection(username) {
             }
         }
 
+        // Escape the Maze Game Logic
+        const mGame = globalStream.mazeGame;
+        if (mGame.isActive) {
+            if (mGame.phase === 'registration' && String(chatText).trim() === '100') {
+                if (!mGame.registeredPlayers.find(p => p.uniqueId === user.uniqueId)) {
+                    mGame.registeredPlayers.push({ uniqueId: user.uniqueId, nickname: user.nickname });
+                    io.emit("mazeGameRegistered", mGame.registeredPlayers);
+                }
+            } else if (mGame.phase === 'playing' && mGame.selectedPlayer && user.uniqueId === mGame.selectedPlayer.uniqueId) {
+                processMazeCommand(user, String(chatText));
+            }
+        }
+
         globalStream.comments.push(commentData);
         if(globalStream.comments.length > 500) globalStream.comments.shift();
         
@@ -580,6 +613,174 @@ function endNumberGameRound(winnerData) {
     }
 }
 
+// --- ESCAPE THE MAZE GAME LOGIC ---
+
+function generateMaze(width, height, trapsEnabled) {
+    if (width % 2 === 0) width++;
+    if (height % 2 === 0) height++;
+
+    let maze = Array(height).fill().map(() => Array(width).fill(1)); // 1 = wall
+
+    function carve(x, y) {
+        maze[y][x] = 0; // 0 = path
+        let dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+        dirs.sort(() => Math.random() - 0.5);
+
+        for (let [dx, dy] of dirs) {
+            let nx = x + dx * 2, ny = y + dy * 2;
+            if (nx > 0 && nx < width - 1 && ny > 0 && ny < height - 1 && maze[ny][nx] === 1) {
+                maze[y + dy][x + dx] = 0;
+                carve(nx, ny);
+            }
+        }
+    }
+
+    carve(1, 1);
+    maze[height-2][width-2] = 0; 
+
+    let traps = [];
+    if (trapsEnabled) {
+        let pathCells = [];
+        for (let y = 1; y < height - 1; y++) {
+            for (let x = 1; x < width - 1; x++) {
+                if (maze[y][x] === 0 && !(x === 1 && y === 1) && !(x === width-2 && y === height-2)) {
+                    pathCells.push({x, y});
+                }
+            }
+        }
+        let trapCount = Math.floor((width * height) / 30);
+        pathCells.sort(() => Math.random() - 0.5);
+        for(let i=0; i<trapCount && i<pathCells.length; i++) {
+            let t = pathCells[i];
+            maze[t.y][t.x] = 2;
+            traps.push(t);
+        }
+    }
+
+    return { maze, width, height, playerPos: {x: 1, y: 1}, exitPos: {x: width-2, y: height-2}, traps };
+}
+
+function startMazeRegistration() {
+    const mGame = globalStream.mazeGame;
+    mGame.isActive = true;
+    mGame.phase = 'registration';
+    mGame.registeredPlayers = [];
+    mGame.selectedPlayer = null;
+    io.emit("mazeGameState", mGame);
+}
+
+function startMazeGame(settings) {
+    const mGame = globalStream.mazeGame;
+    if (!mGame.selectedPlayer) return;
+
+    mGame.phase = 'playing';
+    mGame.width = settings.width || 11;
+    mGame.height = settings.height || 11;
+    mGame.duration = settings.duration || 60;
+    mGame.remainingTime = mGame.duration;
+    mGame.initialLives = settings.lives || 3;
+    mGame.lives = mGame.initialLives;
+    mGame.trapsEnabled = settings.trapsEnabled || false;
+    mGame.limitedView = settings.limitedView || false;
+    mGame.winner = false;
+
+    const generated = generateMaze(mGame.width, mGame.height, mGame.trapsEnabled);
+    mGame.maze = generated.maze;
+    mGame.playerPos = generated.playerPos;
+    mGame.exitPos = generated.exitPos;
+    mGame.traps = generated.traps;
+
+    if (mGame.timerId) clearInterval(mGame.timerId);
+    mGame.timerId = setInterval(() => {
+        mGame.remainingTime -= 1;
+        io.emit("mazeGameTick", { remainingTime: mGame.remainingTime });
+        if (mGame.remainingTime <= 0) {
+            endMazeGame('time');
+        }
+    }, 1000);
+
+    io.emit("mazeGameState", mGame);
+}
+
+function processMazeCommand(user, text) {
+    const mGame = globalStream.mazeGame;
+    if (mGame.phase !== 'playing') return;
+
+    const chars = text.split('');
+    let moved = false;
+    let feedbackMsgs = [];
+    let dx = 0; let dy = 0;
+
+    for (let char of chars) {
+        if (mGame.phase !== 'playing') break;
+        let nx = mGame.playerPos.x;
+        let ny = mGame.playerPos.y;
+        let moveName = "";
+
+        if (char === 'ر') { nx += 1; moveName = "ڕاست"; }
+        else if (char === 'چ') { nx -= 1; moveName = "چەپ"; }
+        else if (char === 'س') { ny -= 1; moveName = "سەرەوە"; }
+        else if (char === 'خ') { ny += 1; moveName = "خوارەوە"; }
+        else continue;
+
+        if (nx >= 0 && nx < mGame.width && ny >= 0 && ny < mGame.height) {
+            if (mGame.maze[ny][nx] === 1) {
+                feedbackMsgs.push("🧱 دیوارە!");
+            } else {
+                mGame.playerPos.x = nx;
+                mGame.playerPos.y = ny;
+                dx += (nx - mGame.playerPos.x); // To aggregate steps logic if needed
+                moved = true;
+
+                if (mGame.maze[ny][nx] === 2) { // Trap
+                    feedbackMsgs.push("💥 تەڵە!");
+                    mGame.maze[ny][nx] = 0; // Trigger once
+                    mGame.remainingTime = Math.max(0, mGame.remainingTime - 3);
+                    mGame.lives -= 1;
+                    if (mGame.lives <= 0) {
+                        endMazeGame('lives');
+                        break;
+                    }
+                }
+
+                if (nx === mGame.exitPos.x && ny === mGame.exitPos.y) {
+                    endMazeGame('win');
+                    break;
+                }
+            }
+        }
+    }
+
+    if (moved || feedbackMsgs.length > 0) {
+        io.emit("mazeGameMove", {
+            playerPos: mGame.playerPos,
+            remainingTime: mGame.remainingTime,
+            lives: mGame.lives,
+            feedbacks: feedbackMsgs,
+            user: user.nickname,
+            text: text
+        });
+    }
+}
+
+function endMazeGame(reason) {
+    const mGame = globalStream.mazeGame;
+    if (mGame.timerId) clearInterval(mGame.timerId);
+    mGame.phase = 'ended';
+    if (reason === 'win') mGame.winner = true;
+    else mGame.winner = false;
+    
+    io.emit("mazeGameEnded", { reason: reason, winner: mGame.winner });
+}
+
+function stopMazeGame() {
+    const mGame = globalStream.mazeGame;
+    if (mGame.timerId) clearInterval(mGame.timerId);
+    mGame.isActive = false;
+    mGame.phase = 'inactive';
+    io.emit("mazeGameState", mGame);
+}
+
 
 // --- SOCKET.IO LIVE TRACKING LOGIC ---
 io.on("connection", (socket) => {
@@ -639,6 +840,28 @@ io.on("connection", (socket) => {
             };
         }
 
+        const mGame = globalStream.mazeGame;
+        if (mGame.isActive) {
+            syncData.mazeGame = {
+                isActive: mGame.isActive,
+                phase: mGame.phase,
+                registeredPlayers: mGame.registeredPlayers,
+                selectedPlayer: mGame.selectedPlayer,
+                maze: mGame.maze,
+                width: mGame.width,
+                height: mGame.height,
+                playerPos: mGame.playerPos,
+                exitPos: mGame.exitPos,
+                traps: mGame.traps,
+                remainingTime: mGame.remainingTime,
+                lives: mGame.lives,
+                initialLives: mGame.initialLives,
+                trapsEnabled: mGame.trapsEnabled,
+                limitedView: mGame.limitedView,
+                winner: mGame.winner
+            };
+        }
+
         socket.emit("initialState", syncData);
     });
 
@@ -650,13 +873,36 @@ io.on("connection", (socket) => {
         const game = globalStream.numberGame;
         if (game.timerId) clearInterval(game.timerId);
         game.isActive = false;
-        game.roundEnded = true;
-        io.emit("numberGameEnded", {
-            secretNumber: game.secretNumber,
-            winner: null,
-            closestGuess: null,
-            stopped: true
-        });
+        io.emit("numberGameEnded", { stopped: true });
+    });
+
+    socket.on("startMazeRegistration", () => {
+        startMazeRegistration();
+    });
+
+    socket.on("selectMazePlayer", (uniqueId) => {
+        const mGame = globalStream.mazeGame;
+        if (mGame.phase === 'registration') {
+            const player = mGame.registeredPlayers.find(p => p.uniqueId === uniqueId);
+            if (player) {
+                mGame.selectedPlayer = player;
+                io.emit("mazeGameState", mGame);
+            }
+        }
+    });
+
+    socket.on("startMazeGame", (settings) => {
+        startMazeGame(settings);
+    });
+
+    socket.on("stopMazeGame", () => {
+        stopMazeGame();
+    });
+
+    socket.on("clearMazePlayers", () => {
+        globalStream.mazeGame.registeredPlayers = [];
+        globalStream.mazeGame.selectedPlayer = null;
+        io.emit("mazeGameState", globalStream.mazeGame);
     });
 
     socket.on("saveUserSettings", async (data) => {
