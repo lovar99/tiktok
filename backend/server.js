@@ -662,13 +662,35 @@ function generateMaze(width, height, trapsEnabled) {
     return { maze, width, height, playerPos: {x: 1, y: 1}, exitPos: {x: width-2, y: height-2}, traps };
 }
 
+function getSafeMazeGameState() {
+    const mGame = globalStream.mazeGame;
+    return {
+        isActive: mGame.isActive,
+        phase: mGame.phase,
+        registeredPlayers: mGame.registeredPlayers,
+        selectedPlayer: mGame.selectedPlayer,
+        maze: mGame.maze,
+        width: mGame.width,
+        height: mGame.height,
+        playerPos: mGame.playerPos,
+        exitPos: mGame.exitPos,
+        traps: mGame.traps,
+        remainingTime: mGame.remainingTime,
+        lives: mGame.lives,
+        initialLives: mGame.initialLives,
+        trapsEnabled: mGame.trapsEnabled,
+        limitedView: mGame.limitedView,
+        winner: mGame.winner
+    };
+}
+
 function startMazeRegistration() {
     const mGame = globalStream.mazeGame;
     mGame.isActive = true;
     mGame.phase = 'registration';
     mGame.registeredPlayers = [];
     mGame.selectedPlayer = null;
-    io.emit("mazeGameState", mGame);
+    io.emit("mazeGameState", getSafeMazeGameState());
 }
 
 function startMazeGame(settings) {
@@ -701,7 +723,7 @@ function startMazeGame(settings) {
         }
     }, 1000);
 
-    io.emit("mazeGameState", mGame);
+    io.emit("mazeGameState", getSafeMazeGameState());
 }
 
 function processMazeCommand(user, text) {
@@ -780,7 +802,7 @@ function stopMazeGame() {
     if (mGame.timerId) clearInterval(mGame.timerId);
     mGame.isActive = false;
     mGame.phase = 'inactive';
-    io.emit("mazeGameState", mGame);
+    io.emit("mazeGameState", getSafeMazeGameState());
 }
 
 
@@ -844,24 +866,7 @@ io.on("connection", (socket) => {
 
         const mGame = globalStream.mazeGame;
         if (mGame.isActive) {
-            syncData.mazeGame = {
-                isActive: mGame.isActive,
-                phase: mGame.phase,
-                registeredPlayers: mGame.registeredPlayers,
-                selectedPlayer: mGame.selectedPlayer,
-                maze: mGame.maze,
-                width: mGame.width,
-                height: mGame.height,
-                playerPos: mGame.playerPos,
-                exitPos: mGame.exitPos,
-                traps: mGame.traps,
-                remainingTime: mGame.remainingTime,
-                lives: mGame.lives,
-                initialLives: mGame.initialLives,
-                trapsEnabled: mGame.trapsEnabled,
-                limitedView: mGame.limitedView,
-                winner: mGame.winner
-            };
+            syncData.mazeGame = getSafeMazeGameState();
         }
 
         socket.emit("initialState", syncData);
@@ -888,7 +893,7 @@ io.on("connection", (socket) => {
             const player = mGame.registeredPlayers.find(p => p.uniqueId === uniqueId);
             if (player) {
                 mGame.selectedPlayer = player;
-                io.emit("mazeGameState", mGame);
+                io.emit("mazeGameState", getSafeMazeGameState());
             }
         }
     });
@@ -904,7 +909,7 @@ io.on("connection", (socket) => {
     socket.on("clearMazePlayers", () => {
         globalStream.mazeGame.registeredPlayers = [];
         globalStream.mazeGame.selectedPlayer = null;
-        io.emit("mazeGameState", globalStream.mazeGame);
+        io.emit("mazeGameState", getSafeMazeGameState());
     });
 
     socket.on("saveUserSettings", async (data) => {
