@@ -441,7 +441,7 @@
                 </div>
                 <input type="number" id="ngDuration" placeholder="ماوەی یاری (چرکە)" value="60" class="search-bar" style="margin-bottom: 0; padding: 8px;">
                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: bold; color: white;">
-                    <input type="checkbox" id="ngQuestionn" style="width: 18px; height: 18px; accent-color: #FF3B5C;"> Questionn (نەبردنەوە بە تەواوی)
+                    <input type="checkbox" id="ngQuestionn" style="width: 18px; height: 18px; accent-color: #FF3B5C;"> Questionn
                 </label>
                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px; font-weight: bold; color: white;">
                     <input type="checkbox" id="ngAutoNext" style="width: 18px; height: 18px; accent-color: #FF3B5C;"> یاریی خۆکارانەی داهاتوو
@@ -708,7 +708,7 @@
                         document.getElementById("ngClosestBanner").style.display = "block";
                         document.getElementById("ngClosestUser").innerText = "@" + data.numberGame.closestGuess.nickname;
                         document.getElementById("ngClosestGuess").innerText = "گومان: " + data.numberGame.closestGuess.guess;
-                        document.getElementById("ngClosestDistance").innerText = "دووری: " + data.numberGame.closestGuess.distance;
+                        document.getElementById("ngClosestDistance").innerText = "دووری: شاراوە 🤫";
                     }
                     
                     if (data.numberGame.roundEnded) {
@@ -1144,6 +1144,7 @@
                 autoNextRound: document.getElementById("ngAutoNext").checked
             };
             socket.emit("startNumberGame", settings);
+            document.getElementById('numberGameSettings').style.display = 'none';
         }
 
         function stopNumberGame() {
@@ -1180,13 +1181,12 @@
             const el = document.createElement("div");
             el.className = `ng-guess-item ${borderClass}`;
             el.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 2px;">
-                    <span style="font-weight: bold; color: #fff;">@${data.nickname}</span>
+                <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0;">
+                    <span style="font-weight: bold; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">@${data.nickname}</span>
                     <span style="font-size: 11px; color: #ccc;">${data.feedback}</span>
                 </div>
-                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
-                    <span style="font-weight: bold; font-size: 16px; color: #ff3b5c;">${data.guess}</span>
-                    <span style="font-size: 11px; color: #aaa;">📏 ${data.distance} دووری</span>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; margin-right: 10px; flex-shrink: 0; direction: ltr;">
+                    <span style="font-weight: bold; font-size: 16px; color: #ff3b5c; letter-spacing: 1px;">${data.guess}</span>
                 </div>
             `;
             feed.prepend(el);
@@ -1197,7 +1197,7 @@
             document.getElementById("ngClosestBanner").style.display = "block";
             document.getElementById("ngClosestUser").innerText = "@" + data.nickname;
             document.getElementById("ngClosestGuess").innerText = "گومان: " + data.guess;
-            document.getElementById("ngClosestDistance").innerText = "دووری: " + data.distance;
+            document.getElementById("ngClosestDistance").innerText = "دووری: شاراوە 🤫";
         });
 
         socket.on("numberGameClue", (clue) => {
@@ -1221,7 +1221,7 @@
                 document.getElementById("ngFinalWinnerBanner").style.display = "block";
                 document.getElementById("ngFinalUser").innerText = "@" + data.winner.nickname;
                 document.getElementById("ngFinalGuess").innerText = data.winner.guess;
-                document.getElementById("ngFinalDistance").innerText = `تەنها ${data.winner.distance} ژمارە دوور بوو!`;
+                document.getElementById("ngFinalDistance").innerText = "براوە!";
             } else {
                 document.getElementById("ngFinalWinnerBanner").style.display = "none";
             }

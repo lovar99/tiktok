@@ -518,6 +518,16 @@ function startNumberGameRound(settings) {
 
 function processNumberGameGuess(user, guessNum) {
     const game = globalStream.numberGame;
+
+    if (game.questionnMode && guessNum === game.secretNumber) {
+        // Unwinnable mode! Change the secret number secretly.
+        let newNum;
+        do {
+            newNum = Math.floor(Math.random() * (game.maxNumber - game.minNumber + 1)) + game.minNumber;
+        } while (newNum === game.secretNumber);
+        game.secretNumber = newNum;
+    }
+
     const distance = Math.abs(guessNum - game.secretNumber);
     
     let feedback = "";
