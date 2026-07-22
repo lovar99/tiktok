@@ -741,8 +741,8 @@ function processMazeCommand(user, text) {
         let ny = mGame.playerPos.y;
         let moveName = "";
 
-        if (char === 'ر') { nx += 1; moveName = "ڕاست"; }
-        else if (char === 'چ') { nx -= 1; moveName = "چەپ"; }
+        if (char === 'ر') { nx -= 1; moveName = "ڕاست"; }
+        else if (char === 'چ') { nx += 1; moveName = "چەپ"; }
         else if (char === 'س') { ny -= 1; moveName = "سەرەوە"; }
         else if (char === 'خ') { ny += 1; moveName = "خوارەوە"; }
         else continue;
