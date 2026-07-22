@@ -881,6 +881,7 @@
                 }
                 
                 if (data.numberGame && data.numberGame.isActive) {
+                    currentNumberGameQuestionnMode = !!data.numberGame.questionnMode;
                     document.getElementById("numberGameOverlay").style.display = "none";
                     document.getElementById("numberGameActiveArea").style.opacity = "1";
                     document.getElementById("ngRange").innerText = `ژمارە: ${data.numberGame.minNumber} — ${data.numberGame.maxNumber}`;
@@ -900,7 +901,12 @@
                         document.getElementById("ngClosestBanner").style.display = "block";
                         document.getElementById("ngClosestUser").innerText = "@" + data.numberGame.closestGuess.nickname;
                         document.getElementById("ngClosestGuess").innerText = "گومان: " + data.numberGame.closestGuess.guess;
-                        document.getElementById("ngClosestDistance").innerText = "دووری: شاراوە 🤫";
+                        
+                        if (currentNumberGameQuestionnMode) {
+                            document.getElementById("ngClosestDistance").innerText = data.numberGame.closestGuess.feedback;
+                        } else {
+                            document.getElementById("ngClosestDistance").innerText = "دووری: " + data.numberGame.closestGuess.distance;
+                        }
                     }
                     
                     if (data.numberGame.roundEnded) {
@@ -1389,7 +1395,11 @@
             document.getElementById("ngClosestBanner").style.display = "block";
             document.getElementById("ngClosestUser").innerText = "@" + data.nickname;
             document.getElementById("ngClosestGuess").innerText = "گومان: " + data.guess;
-            document.getElementById("ngClosestDistance").innerText = "دووری: شاراوە 🤫";
+            if (currentNumberGameQuestionnMode) {
+                document.getElementById("ngClosestDistance").innerText = data.feedback;
+            } else {
+                document.getElementById("ngClosestDistance").innerText = "دووری: " + data.distance;
+            }
         });
 
         socket.on("numberGameClue", (clue) => {
@@ -2070,6 +2080,7 @@
 
         // --- ESCAPE THE MAZE GAME LOGIC ---
         let currentMazeGameData = null;
+        let currentNumberGameQuestionnMode = false;
 
         function selectAndStartMaze(uniqueId) {
             socket.emit('selectMazePlayer', uniqueId);

@@ -857,6 +857,7 @@ io.on("connection", (socket) => {
                 maxNumber: game.maxNumber,
                 remainingTime: game.remainingTime,
                 closestGuess: game.closestGuess,
+                questionnMode: game.questionnMode,
                 clues: game.clues,
                 questionnMode: game.questionnMode,
                 secretNumber: game.roundEnded ? game.secretNumber : null,
