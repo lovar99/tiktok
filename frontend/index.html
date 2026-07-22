@@ -2226,25 +2226,28 @@
             for (let y = startY; y <= endY; y++) {
                 for (let x = startX; x <= endX; x++) {
                     const cell = document.createElement('div');
-                    cell.style.width = '20px';
-                    cell.style.height = '20px';
+                    cell.style.width = '100%';
+                    cell.style.height = '100%';
                     cell.style.display = 'flex';
                     cell.style.alignItems = 'center';
                     cell.style.justifyContent = 'center';
-                    cell.style.fontSize = '14px';
+                    cell.style.fontSize = 'min(3vw, 20px)';
 
                     if (y === m.playerPos.y && x === m.playerPos.x) {
-                        cell.innerText = '🟢';
+                        cell.innerText = '🏃';
                     } else if (y === m.exitPos.y && x === m.exitPos.x) {
                         cell.innerText = '🚪';
                     } else if (m.maze[y][x] === 1) {
-                        cell.style.backgroundColor = '#444';
-                        cell.style.borderRadius = '3px';
+                        cell.style.backgroundColor = '#4F46E5';
+                        cell.style.boxShadow = 'inset 0 0 8px rgba(0,0,0,0.5), 0 0 5px rgba(79, 70, 229, 0.5)';
+                        cell.style.borderRadius = '4px';
+                        cell.style.border = '1px solid #6366f1';
                     } else if (m.maze[y][x] === 2) {
                         cell.innerText = '💥';
                     } else {
-                        cell.style.backgroundColor = '#222';
-                        cell.style.borderRadius = '3px';
+                        cell.style.backgroundColor = '#1a1c29';
+                        cell.style.borderRadius = '4px';
+                        cell.style.boxShadow = 'inset 0 0 5px rgba(0,0,0,0.8)';
                     }
                     container.appendChild(cell);
                 }
