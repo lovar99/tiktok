@@ -234,13 +234,16 @@
             justify-content: center;
         }
         .fullscreen-widget #mzGridContainer {
-            max-height: var(--mz-h, 100vh) !important;
-            height: var(--mz-h, 100vh) !important;
-            width: var(--mz-w, 100vw) !important;
-            max-width: var(--mz-w, 100vw) !important;
-            margin: 0 !important;
-            border-radius: 0 !important;
-            padding: 0 !important;
+            width: var(--mz-w, min(95vw, 70vh)) !important;
+            height: var(--mz-h, min(95vw, 70vh)) !important;
+            aspect-ratio: 1 / 1 !important;
+            max-width: 98vw !important;
+            max-height: 85vh !important;
+            margin: auto !important;
+            border-radius: 8px !important;
+            padding: 5px !important;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border: 2px solid #6366f1;
         }
         .fullscreen-widget .mz-top-hud {
             position: absolute !important;
@@ -758,16 +761,30 @@
                 <button class="stop-btn" onclick="document.getElementById('mzControlsPopup').style.display='none'" style="width: 100%; padding: 8px; margin: 0; background: #333; font-weight: bold;">داخستن (Close)</button>
             </div>
 
-            <!-- Fullscreen Overlay Controls (OUTSIDE mzActiveArea so always visible in fullscreen) -->
-            <div id="mzStretchControls" style="display: none; position: absolute; bottom: 75px; left: 50%; transform: translateX(-50%); z-index: 101; background: rgba(0,0,0,0.85); padding: 10px; border-radius: 10px; flex-direction: column; gap: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
-                <div style="display: flex; gap: 10px;">
-                    <button class="menu-btn" onclick="stretchMaze(0, -5)" style="background: #333;">↕️ بچووککردنەوەی درێژی</button>
-                    <button class="menu-btn" onclick="stretchMaze(0, 5)" style="background: #4CAF50;">↕️ گەورەکردنی درێژی</button>
+            <!-- Fullscreen Overlay Controls (Organized & Easy to use on Mobile) -->
+            <div id="mzStretchControls" style="display: none; position: absolute; bottom: 75px; left: 50%; transform: translateX(-50%); z-index: 101; background: rgba(13, 27, 42, 0.95); border: 2px solid #6366f1; padding: 15px; border-radius: 12px; flex-direction: column; gap: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); width: 90%; max-width: 320px;">
+                <h4 style="margin: 0; color: #6366f1; text-align: center; font-size: 15px;">📐 ڕێکخستنی قەبارەی یاری</h4>
+                
+                <!-- Zoom Slider -->
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #ccc;">
+                        <span>قەبارەی یاری (Scale)</span>
+                        <span id="mzZoomVal">100%</span>
+                    </div>
+                    <input type="range" id="mzZoomSlider" min="40" max="150" value="100" style="width: 100%; accent-color: #6366f1;" oninput="applyMazeZoom(this.value)">
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="menu-btn" onclick="stretchMaze(-5, 0)" style="background: #333;">↔️ بچووککردنەوەی پانی</button>
-                    <button class="menu-btn" onclick="stretchMaze(5, 0)" style="background: #2196F3;">↔️ گەورەکردنی پانی</button>
+
+                <!-- Presets -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 12px; color: #ccc; text-align: center;">پێشوەچوونە خێراکان (Presets)</div>
+                    <div style="display: flex; gap: 5px; width: 100%;">
+                        <button class="menu-btn" style="flex: 1; padding: 6px; font-size: 11px; margin: 0; background: #2196F3;" onclick="presetMazeSize('portrait')">📱 ستونی (Portrait)</button>
+                        <button class="menu-btn" style="flex: 1; padding: 6px; font-size: 11px; margin: 0; background: #4CAF50;" onclick="presetMazeSize('landscape')">📺 ئاسۆیی (Landscape)</button>
+                    </div>
+                    <button class="menu-btn" style="width: 100%; padding: 6px; font-size: 11px; margin: 0; background: #333;" onclick="presetMazeSize('auto')">🔄 گونجانی خۆکار (Auto)</button>
                 </div>
+                
+                <button class="stop-btn" onclick="document.getElementById('mzStretchControls').style.display='none'" style="width: 100%; padding: 8px; margin: 0; font-size: 12px; font-weight: bold;">داخستن</button>
             </div>
 
             <!-- Fullscreen Control Toolbar Pill -->
@@ -2202,12 +2219,44 @@
         let currentNumberGameQuestionnMode = false;
         let mzW = 100, mzH = 100;
 
-        function stretchMaze(dw, dh) {
-            mzW += dw;
-            mzH += dh;
+        let currentMazeZoom = 100;
+        
+        function applyMazeZoom(val) {
+            currentMazeZoom = val;
+            const sliderVal = document.getElementById('mzZoomVal');
+            if (sliderVal) sliderVal.innerText = val + '%';
+            
             const grid = document.getElementById('mzGridContainer');
-            grid.style.setProperty('--mz-w', mzW + 'vw');
-            grid.style.setProperty('--mz-h', mzH + 'vh');
+            if (grid) {
+                // Calculate base viewport scale multiplied by slider percentage
+                grid.style.setProperty('--mz-w', `calc(min(95vw, 70vh) * ${val / 100})`);
+                grid.style.setProperty('--mz-h', `calc(min(95vw, 70vh) * ${val / 100})`);
+            }
+        }
+
+        function presetMazeSize(preset) {
+            const grid = document.getElementById('mzGridContainer');
+            const slider = document.getElementById('mzZoomSlider');
+            const sliderVal = document.getElementById('mzZoomVal');
+            
+            if (grid) {
+                if (preset === 'portrait') {
+                    grid.style.setProperty('--mz-w', '95vw');
+                    grid.style.setProperty('--mz-h', '95vw');
+                    if (slider) slider.value = 135;
+                    if (sliderVal) sliderVal.innerText = '135%';
+                } else if (preset === 'landscape') {
+                    grid.style.setProperty('--mz-w', '80vh');
+                    grid.style.setProperty('--mz-h', '80vh');
+                    if (slider) slider.value = 115;
+                    if (sliderVal) sliderVal.innerText = '115%';
+                } else if (preset === 'auto') {
+                    grid.style.removeProperty('--mz-w');
+                    grid.style.removeProperty('--mz-h');
+                    if (slider) slider.value = 100;
+                    if (sliderVal) sliderVal.innerText = '100%';
+                }
+            }
         }
 
         function exitMazeFullscreen() {
@@ -2332,19 +2381,11 @@
                 endY = Math.min(m.height - 1, m.playerPos.y + 2);
                 startX = Math.max(0, m.playerPos.x - 2);
                 endX = Math.min(m.width - 1, m.playerPos.x + 2);
-
-                container.style.padding = '5px';
-                container.style.width = `100%`; 
-                container.style.height = `100%`;
-                container.style.justifyContent = 'center';
-                container.style.alignContent = 'center';
-            } else {
-                container.style.padding = '5px';
-                container.style.width = '100%';
-                container.style.height = '100%';
-                container.style.justifyContent = 'center';
-                container.style.alignContent = 'center';
             }
+
+            container.style.padding = '5px';
+            container.style.justifyContent = 'center';
+            container.style.alignContent = 'center';
 
             for (let y = startY; y <= endY; y++) {
                 for (let x = startX; x <= endX; x++) {
