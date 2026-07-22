@@ -307,7 +307,11 @@ function initializeTikTokConnection(username) {
 
     globalStream.connection.on('like', data => {
         const user = getUser(data);
-        user.likeCount += (data.likeCount || 1); 
+        if (data.totalLikeCount !== undefined) {
+            user.likeCount = data.totalLikeCount;
+        } else {
+            user.likeCount += (data.likeCount || 1);
+        }
         user.actualTotalLikes = user.likeCount;
         emitUpdate();
     });
@@ -467,7 +471,10 @@ io.on("connection", (socket) => {
 
     socket.on("getPastSessions", async () => {
         const res = await queryD1(`SELECT id, username, start_time FROM sessions ORDER BY id DESC LIMIT 20`);
-        socket.emit("pastSessionsData", res.result?.[0]?.results || []);
+        if (!res || !res.success) {
+            socket.emit("streamStatus", { status: "error", message: `D1 Error: ${res?.error?.message || res?.error || "Unknown error"}` });
+        }
+        socket.emit("pastSessionsData", res?.result?.[0]?.results || []);
     });
 
     socket.on("loadPastSession", async (id) => {
